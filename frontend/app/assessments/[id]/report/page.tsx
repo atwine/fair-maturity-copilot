@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { LoadingState } from "@/components/loading-state";
 import { PrincipleChip } from "@/components/fair-spectrum";
+import { parseRemediation } from "@/lib/parse-remediation";
 import { api, ApiError } from "@/lib/api-client";
 import type { Finding, Report } from "@/lib/types";
 
@@ -30,7 +33,7 @@ const SEVERITY_STYLE: Record<Finding["severity"], string> = {
 function SeverityBadge({ severity }: { severity: Finding["severity"] }) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${SEVERITY_STYLE[severity]}`}
+      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-semibold ${SEVERITY_STYLE[severity]}`}
     >
       {SEVERITY_LABEL[severity]}
     </span>
@@ -111,7 +114,7 @@ export default function ReportPage() {
   const looksGood = report.findings.filter((f) => f.severity === "pass");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-6 py-10">
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-10">
       <Card className="border-2">
         <CardContent className="flex items-center gap-6 pt-6">
           <span className={`font-heading text-6xl leading-none font-semibold tabular-nums ${scoreTone(report.score)}`}>
@@ -119,7 +122,7 @@ export default function ReportPage() {
           </span>
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">out of 100</p>
-            <p className="text-sm">
+            <p className="text-base">
               {needsAttention.length === 0
                 ? "Every indicator checked out clean."
                 : `${needsAttention.length} of ${report.findings.length} indicators have something worth fixing.`}
@@ -129,44 +132,30 @@ export default function ReportPage() {
       </Card>
 
       {needsAttention.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="font-heading text-lg font-semibold">Needs attention</h2>
+        <div className="space-y-4">
+          <h2 className="font-heading text-xl font-semibold">Needs attention</h2>
           {needsAttention.map((finding) => (
-            <Card key={finding.indicator_id}>
-              <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-                <div className="flex min-w-0 items-center gap-2">
-                  <PrincipleChip group={finding.principle_group} />
-                  <CardTitle className="truncate text-base">{finding.title}</CardTitle>
-                </div>
-                <SeverityBadge severity={finding.severity} />
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm">{finding.remediation_text}</p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleRegenerate(finding.indicator_id)}
-                  disabled={regenerating === finding.indicator_id}
-                >
-                  {regenerating === finding.indicator_id ? "Regenerating…" : "Regenerate this suggestion"}
-                </Button>
-              </CardContent>
-            </Card>
+            <FindingCard
+              key={finding.indicator_id}
+              finding={finding}
+              regenerating={regenerating === finding.indicator_id}
+              onRegenerate={() => handleRegenerate(finding.indicator_id)}
+            />
           ))}
         </div>
       )}
 
       {looksGood.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="font-heading text-lg font-semibold">Looks good</h2>
-          <ul className="divide-y rounded-md border bg-card">
-            {looksGood.map((f) => (
-              <li key={f.indicator_id} className="flex items-center gap-3 p-3 text-sm">
-                <PrincipleChip group={f.principle_group} />
-                <span className="truncate">{f.title}</span>
-              </li>
-            ))}
-          </ul>
+        <div className="space-y-4">
+          <h2 className="font-heading text-xl font-semibold">Looks good</h2>
+          {looksGood.map((finding) => (
+            <FindingCard
+              key={finding.indicator_id}
+              finding={finding}
+              regenerating={regenerating === finding.indicator_id}
+              onRegenerate={() => handleRegenerate(finding.indicator_id)}
+            />
+          ))}
         </div>
       )}
 
@@ -176,5 +165,58 @@ export default function ReportPage() {
         render={<Link href="/assessments/new">Start another assessment</Link>}
       />
     </main>
+  );
+}
+
+function FindingCard({
+  finding,
+  regenerating,
+  onRegenerate,
+}: {
+  finding: Finding;
+  regenerating: boolean;
+  onRegenerate: () => void;
+}) {
+  const { summary, steps } = parseRemediation(finding.remediation_text ?? "");
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+        <div className="flex min-w-0 items-center gap-2">
+          <PrincipleChip group={finding.principle_group} />
+          <CardTitle className="truncate font-heading text-lg">{finding.title}</CardTitle>
+        </div>
+        <SeverityBadge severity={finding.severity} />
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-base leading-relaxed">{summary}</p>
+
+        {steps.length > 0 && (
+          <Collapsible open={open} onOpenChange={setOpen}>
+            <CollapsibleTrigger
+              className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            >
+              <ChevronDown className={`size-4 transition-transform ${open ? "rotate-180" : ""}`} />
+              {open ? "Hide the steps" : `See ${steps.length} step${steps.length === 1 ? "" : "s"} to fix this`}
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <ol className="mt-3 space-y-2.5 border-l-2 border-border pl-4">
+                {steps.map((step, i) => (
+                  <li key={i} className="text-base leading-relaxed">
+                    <span className="font-heading mr-1.5 font-semibold text-primary">{i + 1}.</span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
+        <Button size="sm" variant="outline" onClick={onRegenerate} disabled={regenerating}>
+          {regenerating ? "Regenerating…" : "Regenerate this suggestion"}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

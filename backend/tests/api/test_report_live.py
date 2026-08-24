@@ -1,9 +1,10 @@
-"""Hits the real vLLM endpoint -- slower than the rest of the suite (a
-handful of live generations), but this is the only test that proves the
-report route's LLM integration actually works end to end, not just that
-the surrounding routes are wired correctly. Mostly "yes" answers to keep
-the LLM call count (and runtime) low; two deliberate gaps to exercise
-scoring, remediation, and the regenerate endpoint.
+"""Hits the real vLLM endpoint -- slower than the rest of the suite, but
+this is the only test that proves the report route's LLM integration
+actually works end to end, not just that the surrounding routes are wired
+correctly. Every finding gets a remediation call now (including passing
+ones, which get a short "why this is fine" note), so each full report
+generation here is 12 live LLM calls, not just one per gap -- this suite
+is meaningfully slower than it used to be as a result.
 """
 
 from concurrent.futures import ThreadPoolExecutor
@@ -122,9 +123,12 @@ def test_regenerate_before_report_exists_404s(client):
     assert r.status_code == 404
 
 
-def test_regenerate_on_passing_finding_rejected(client):
+def test_regenerate_on_passing_finding_still_works(client):
+    # Passing findings now get a short "why this is fine" note too (not just
+    # weak ones), so regenerating one is a normal request, not an error.
     run_id = _create_and_complete_run(client, extra_answers={})  # all "yes" -> everything passes
     client.get(f"/assessments/{run_id}/report")
 
     r = client.post(f"/assessments/{run_id}/findings/fair.f1-identifier/regenerate")
-    assert r.status_code == 400
+    assert r.status_code == 200
+    assert r.json()["remediation_text"]

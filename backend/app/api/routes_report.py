@@ -84,13 +84,16 @@ def _do_generate_report(session: Session, run: AssessmentRun) -> None:
     for f in findings:
         session.refresh(f)
 
+    # Every finding gets written up now, not just weak ones -- a passing
+    # indicator gets a short "why this is fine" note instead of a fix, so the
+    # report never just shows a bare title with no explanation.
     remediations_by_finding_id: dict[str, RemediationDraft] = {}
     for finding in findings:
-        if finding.severity == "pass":
-            continue
         indicator = indicators_by_id[finding.indicator_id]
         answer = answers_by_indicator_id[finding.indicator_id]
-        prompt = adapter.render_remediation_prompt(indicator=indicator, answer=answer, subject_label=run.subject_label)
+        prompt = adapter.render_remediation_prompt(
+            indicator=indicator, answer=answer, subject_label=run.subject_label, severity=finding.severity
+        )
         draft = write_remediation(finding=finding, answer=answer, prompt=prompt, prompt_version=adapter.prompt_version)
         session.add(draft)
         remediations_by_finding_id[str(finding.id)] = draft
@@ -181,8 +184,6 @@ def regenerate_finding(run_id: UUID, indicator_id: str, session: Session = Depen
     ).first()
     if finding is None:
         raise HTTPException(status_code=404, detail="Finding not found — generate the report first")
-    if finding.severity == "pass":
-        raise HTTPException(status_code=400, detail="No remediation needed for a passing finding")
 
     answer = session.exec(
         select(Answer).where(Answer.run_id == run_id, Answer.indicator_id == indicator_id)
@@ -192,7 +193,9 @@ def regenerate_finding(run_id: UUID, indicator_id: str, session: Session = Depen
         raise HTTPException(status_code=500, detail="Answer or indicator missing for an existing finding")
 
     adapter = get_adapter(run.adapter_id)
-    prompt = adapter.render_remediation_prompt(indicator=indicator, answer=answer, subject_label=run.subject_label)
+    prompt = adapter.render_remediation_prompt(
+        indicator=indicator, answer=answer, subject_label=run.subject_label, severity=finding.severity
+    )
     draft = write_remediation(finding=finding, answer=answer, prompt=prompt, prompt_version=adapter.prompt_version)
     session.add(draft)
     session.commit()

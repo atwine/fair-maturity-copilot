@@ -15,8 +15,6 @@ def build_report_markdown(
     lines = [f"## Overall score: {score}/100", ""]
 
     for f in rank(findings):
-        if f.severity == "pass":
-            continue
         indicator = indicators_by_id[f.indicator_id]
         remediation = remediations_by_finding_id.get(str(f.id))
         lines.append(f"### {indicator.title} ({f.severity.replace('_', ' ')})")

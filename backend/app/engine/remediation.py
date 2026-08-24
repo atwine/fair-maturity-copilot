@@ -13,10 +13,13 @@ from app.engine.models import Answer, Finding, RemediationDraft
 from app.config import settings
 
 _BANNED_TERMS = re.compile(r"\bFAIR principle\b|\bRDA-[A-Z0-9.\-]+\b", re.IGNORECASE)
-_WORD_COUNT_RANGE = (15, 160)  # generous band around the ~120-word target; see docs/PLANNING_PROMPT.md
+# A passing finding gets just a short SUMMARY line (as few as ~10 words); a
+# gap gets a SUMMARY plus 2-3 STEPS. Wide enough to cover both without being
+# a no-op check.
+_WORD_COUNT_RANGE = (5, 220)
 
 
-def _grounding_ok(text: str, answer: Answer) -> tuple[bool, str | None]:
+def _grounding_ok(text: str, answer: Answer, severity: str) -> tuple[bool, str | None]:
     word_count = len(text.split())
     if not (_WORD_COUNT_RANGE[0] <= word_count <= _WORD_COUNT_RANGE[1]):
         return False, f"word count {word_count} outside {_WORD_COUNT_RANGE}"
@@ -27,7 +30,10 @@ def _grounding_ok(text: str, answer: Answer) -> tuple[bool, str | None]:
     # check" guidance (see prompts/remediation.jinja) rather than a fix tied
     # to specifics of what's often a thin or empty note — requiring overlap
     # here would penalize the model for following that instruction correctly.
-    if answer.is_dont_know:
+    # A "pass" note is similarly generic by design (a short "why this is
+    # fine" line) and its only reference material is often just a bare
+    # "Yes, clearly true" label with no real content to ground against.
+    if answer.is_dont_know or severity == "pass":
         return True, None
 
     # Reference-grounding: the output should overlap with something the user
@@ -51,7 +57,7 @@ def write_remediation(
     prompt_version: str,
 ) -> RemediationDraft:
     text = generate(prompt)
-    passed, notes = _grounding_ok(text, answer)
+    passed, notes = _grounding_ok(text, answer, finding.severity)
     return RemediationDraft(
         finding_id=finding.id,
         llm_model_id=settings.llm_model,

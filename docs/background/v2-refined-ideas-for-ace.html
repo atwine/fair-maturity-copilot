@@ -1,0 +1,199 @@
+<title>Four Ideas for ACE, Refined</title>
+<style>
+:root{
+  --paper:#f1efe7;
+  --paper-raised:#ffffff;
+  --ink:#1b2420;
+  --ink-soft:#3f4a44;
+  --line:#d8d3c4;
+  --teal:#1f4b49;
+  --teal-soft:#e6efee;
+  --gold:#b5842a;
+  --gold-soft:#f3e6cb;
+  --good:#3d7a4a;
+  --bad:#a13a2c;
+  --bad-soft:#f4e3df;
+  --good-soft:#e4f0e6;
+  --shadow: 0 1px 2px rgba(27,36,32,0.06), 0 6px 20px -8px rgba(27,36,32,0.12);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#161c19; --paper-raised:#1e2622; --ink:#eae6da; --ink-soft:#b7bdb5;
+    --line:#333f39; --teal:#7fc4bc; --teal-soft:#20302d; --gold:#e0b354; --gold-soft:#332a15;
+    --good:#7cc98e; --bad:#e08a78; --bad-soft:#3a231e; --good-soft:#1f2e22;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#161c19; --paper-raised:#1e2622; --ink:#eae6da; --ink-soft:#b7bdb5;
+  --line:#333f39; --teal:#7fc4bc; --teal-soft:#20302d; --gold:#e0b354; --gold-soft:#332a15;
+  --good:#7cc98e; --bad:#e08a78; --bad-soft:#3a231e; --good-soft:#1f2e22;
+  --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -10px rgba(0,0,0,0.5);
+}
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+*{box-sizing:border-box;}
+html,body{background:var(--paper);}
+body{color:var(--ink);font-family:'Karla',system-ui,sans-serif;line-height:1.55;font-size:16px;-webkit-font-smoothing:antialiased;}
+h1,h2,h3{font-family:'Fraunces',Georgia,serif;text-wrap:balance;color:var(--ink);}
+.wrap{max-width:960px;margin:0 auto;padding:0 24px 96px;}
+.masthead{border-bottom:1px solid var(--line);padding:56px 0 32px;}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--teal);display:flex;align-items:center;gap:8px;margin-bottom:18px;}
+.eyebrow::before{content:"";width:7px;height:7px;background:var(--gold);border-radius:50%;display:inline-block;}
+h1{font-size:2.5rem;font-weight:700;line-height:1.08;margin:0 0 14px;letter-spacing:-0.01em;}
+.dek{font-size:1.06rem;color:var(--ink-soft);max-width:660px;margin:0;}
+
+.changelog{background:var(--paper-raised);border:1px solid var(--line);border-radius:10px;padding:22px 24px;box-shadow:var(--shadow);margin:32px 0 0;font-size:0.94rem;}
+.changelog h2{font-size:1.05rem;margin:0 0 12px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink);font-weight:600;}
+.changerow{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);align-items:baseline;}
+.changerow:first-of-type{border-top:none;}
+.tag{font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:2px 8px;border-radius:20px;white-space:nowrap;font-weight:600;letter-spacing:0.02em;}
+.tag.dropped{background:var(--bad-soft);color:var(--bad);}
+.tag.merged{background:var(--gold-soft);color:var(--gold);}
+.tag.kept{background:var(--good-soft);color:var(--good);}
+.changerow span.what{color:var(--ink-soft);}
+.changerow span.what b{color:var(--ink);}
+
+.section-head{margin:52px 0 20px;}
+.section-head .n{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--teal);letter-spacing:0.06em;}
+.section-head h2{font-size:1.5rem;margin:4px 0 8px;font-weight:600;}
+.section-head p{color:var(--ink-soft);max-width:680px;margin:0;font-size:0.97rem;}
+
+.cards{display:flex;flex-direction:column;gap:20px;}
+.card{background:var(--paper-raised);border:1px solid var(--line);border-radius:10px;padding:28px 30px;box-shadow:var(--shadow);}
+.card.flagship{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold), var(--shadow);}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:6px;}
+.card-head h3{font-size:1.35rem;margin:0;font-weight:600;}
+.badge{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gold);border:1px solid var(--gold-soft);background:var(--gold-soft);padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.card p.lede{color:var(--ink-soft);font-size:0.98rem;margin:0 0 16px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px;margin-bottom:16px;}
+@media(max-width:640px){.grid2{grid-template-columns:1fr;}}
+.field label{display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.06em;text-transform:uppercase;color:var(--teal);margin-bottom:4px;}
+.field div{font-size:0.93rem;color:var(--ink);}
+.milestones{border-top:1px solid var(--line);padding-top:16px;margin-top:4px;}
+.milestones label{display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.06em;text-transform:uppercase;color:var(--teal);margin-bottom:8px;}
+.milestones ol{margin:0;padding-left:20px;}
+.milestones li{margin-bottom:6px;font-size:0.93rem;}
+.sources{font-size:0.85rem;color:var(--ink-soft);border-top:1px dashed var(--line);padding-top:12px;margin-top:14px;}
+.sources a{color:var(--teal);text-decoration:none;border-bottom:1px solid var(--line);}
+
+.closing{margin-top:56px;padding-top:28px;border-top:1px solid var(--line);font-size:0.95rem;color:var(--ink-soft);}
+.closing b{color:var(--ink);}
+::selection{background:var(--gold-soft);}
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow">Project scoping · v2 · Aug 2026</div>
+    <h1>Four ideas, refined for what you'll actually build</h1>
+    <p class="dek">Cut down from the original ten after your read-through. Kept: what you can personally own end-to-end as a developer, what plays to skills your team has already won grants for, and what a non-technical person (a physician, a data officer, a fellow researcher) could pick up and use.</p>
+  </div>
+
+  <div class="changelog">
+    <h2>What changed from v1</h2>
+    <div class="changerow"><span class="tag dropped">dropped</span><span class="what"><b>#1 AMR/WGS prediction, #8 pathogen genomics dashboard, #10 pipeline reproducibility tool</b> — all require bioinformatics judgment you don't have and can't independently verify. Real ideas, but they belong to your team's bioinformaticians, not to you as sole technical lead.</span></div>
+    <div class="changerow"><span class="tag dropped">dropped</span><span class="what"><b>#3 federated genomic data-sharing toolkit</b> — same reasoning, confirmed on review: multi-institution, governance-heavy, deep-domain. Parked for your team, not for this track.</span></div>
+    <div class="changerow"><span class="tag dropped">dropped</span><span class="what"><b>#6 generic NCD chatbot, #7 farmer voice/vision tool</b> — you called both out of scope directly.</span></div>
+    <div class="changerow"><span class="tag merged">merged</span><span class="what"><b>#9 Luganda benchmark contribution</b> folded into <b>#2 Luganda MT</b> below — you don't want to depend on Masakhane's goodwill, so it's now a standalone release, not a PR queue.</span></div>
+    <div class="changerow"><span class="tag kept">kept</span><span class="what"><b>#2 Luganda MT</b> promoted to flagship — you already have two Hugging Face seq2seq models (En↔Lg), an evaluation set, and a plan to fine-tune Sunbird's model. This is the one idea where you're extending a proven asset, not starting cold.</span></div>
+    <div class="changerow"><span class="tag kept">kept</span><span class="what"><b>#4 grant/manuscript copilot</b> and <b>#5 (split into two)</b> — data anomaly detection and FAIR maturity assessment now stand as separate ideas since your reactions to them were genuinely different.</span></div>
+  </div>
+
+  <div class="section-head">
+    <div class="n">The shortlist</div>
+    <h2>Four ideas</h2>
+    <p>Ordered by how ready each one is to start.</p>
+  </div>
+
+  <div class="cards">
+
+    <div class="card flagship">
+      <div class="card-head"><h3>1. Health-domain Luganda translation, released as an open benchmark + fine-tuned model</h3><span class="badge">flagship — start here</span></div>
+      <p class="lede">General-purpose Luganda MT (including your own two En↔Lg models, and Sunbird's) is tuned for everyday language, not clinical terms, symptom checklists, drug names, or consent-form language. Build a health-domain evaluation set (you already have one to start from), benchmark your models and a fine-tuned Sunbird variant against it, and release the whole thing — dataset, benchmark, model weights — as a standalone open project.</p>
+      <div class="grid2">
+        <div class="field"><label>Why this is the one</label><div>It's the only idea where you're extending something real: two working HF models, an existing eval set, a specific fine-tuning plan already in motion, and a team that has already won grants in this exact area. Every other idea starts from zero.</div></div>
+        <div class="field"><label>Who it's for</label><div>Clinicians and CHWs working in Luganda who need translated health materials to actually be trustworthy — not a chatbot, a translation layer other tools (including your own #2/#4 below) can sit on top of.</div></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Independence from Masakhane</label><div>Release under your own repo and name. No dependency on their review process or community goodwill — if they or Sunbird want to adopt or link to it later, that's upside, not a prerequisite.</div></div>
+        <div class="field"><label>Traction model</label><div>This is your best shot at the Sunbird playbook — publish it well (clear README, a live demo, a leaderboard table), and it's the kind of artifact other African-language NLP builders actually search for and cite.</div></div>
+      </div>
+      <div class="milestones">
+        <label>First two weeks</label>
+        <ol>
+          <li>Audit your existing health-domain eval set — size, source, quality — and expand it if it's under ~300 sentence pairs (WHO/Uganda MoH materials are a fast source).</li>
+          <li>Run your two HF models and vanilla Sunbird through it; score with BLEU/chrF plus a human spot-check on a sample.</li>
+          <li>Start the Sunbird fine-tune on the health-domain data and re-score.</li>
+          <li>Publish v0: repo, README, scores table — even before fine-tuning is "done."</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>2. A grant and manuscript-writing copilot, built for African funder formats</h3></div>
+      <p class="lede">A RAG assistant on Llama 3.3 70B that knows Gates/IDRC/Wellcome/Google.org proposal structures, is grounded in ACE's own past successful proposals, and drafts/critiques sections. Consensus already covers literature search — this doesn't compete with that, it picks up after it, at the writing and structuring stage.</p>
+      <div class="grid2">
+        <div class="field"><label>What's already out there</label><div>Generic tools exist — Dr. Claw and OpenDraft both draft papers/grants with citation checking — but neither is tuned to African funder formats, local budget/ethics realities, or ACE's own proposal history. Neither appears to run fully local, either.</div></div>
+        <div class="field"><label>Your actual differentiator</label><div>Local Llama 3.3 means unpublished grant ideas never leave your machines — a real concern for researchers, and something the hosted competitors can't offer.</div></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Who it's for</label><div>Early-career researchers and PhD/MSc trainees on your own team first — the ones without a mentor to review a draft before submission.</div></div>
+        <div class="field"><label>Risk to manage</label><div>Position it as a drafting aid with a human always reviewing before submission — both for research integrity and because funders read for authentic voice.</div></div>
+      </div>
+      <div class="milestones">
+        <label>First two weeks</label>
+        <ol>
+          <li>Collect 10-15 of ACE's successful past proposals plus 2-3 funders' current guidelines as the RAG corpus.</li>
+          <li>Build a minimal pipeline: retrieve relevant precedent + guidelines, draft one section (e.g. "Approach"), output alongside the source snippets it used.</li>
+          <li>Use it yourself on the next real ACE proposal and track: did it save real drafting time, where did it need heavy correction.</li>
+        </ol>
+      </div>
+      <div class="sources">Landscape checked: <a href="https://github.com" target="_blank" rel="noopener">Dr. Claw</a> · <a href="https://github.com/federicodeponte/opendraft" target="_blank" rel="noopener">OpenDraft</a> — neither is Africa-specific or local-first.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>3. A guided FAIR data maturity assessment and remediation tool</h3></div>
+      <p class="lede">The RDA's FAIR Data Maturity Model has 41 indicators; the one existing automated tool, F-UJI, covers 16 of them and reads like something built for a data librarian, not a lab lead. Build a guided version: walk a research group or health data system through the assessment in plain language, score it, then use an LLM to turn each gap into a concrete "here's what to fix and how" step.</p>
+      <div class="grid2">
+        <div class="field"><label>Why this fits you specifically</label><div>You've sat through the confusing version of this — which model, how to evaluate, what applies to what. Building the tool that removes that confusion for the next person is a genuinely useful, personally-motivated build.</div></div>
+        <div class="field"><label>Who it's for</label><div>Research group leads and health-data system managers across ACE's network — non-technical enough that "self-assess your data governance" is currently out of reach without a consultant.</div></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>What's already out there</label><div><a href="https://www.f-uji.net" target="_blank" rel="noopener">F-UJI</a> covers automated technical checks; nothing wraps it (or the manual indicators it can't check) in a guided, plain-language workflow with remediation guidance.</div></div>
+        <div class="field"><label>Risk to manage</label><div>Scope tightly to a first pilot org (your own center is the obvious one) before generalizing — 41 indicators is a lot to cover in v1.</div></div>
+      </div>
+      <div class="milestones">
+        <label>First two weeks</label>
+        <ol>
+          <li>Read the RDA FAIR Data Maturity Model spec closely and pick the 10-12 indicators most relevant to a health-data-holding research center.</li>
+          <li>Build a simple guided questionnaire (web form is enough for v0) that scores against those indicators.</li>
+          <li>Wire an LLM step that turns a low score on any indicator into a short, specific remediation suggestion.</li>
+          <li>Run it on ACE's own data practices as the first real test.</li>
+        </ol>
+      </div>
+      <div class="sources">Source: <a href="https://datascience.codata.org/articles/10.5334/dsj-2020-041" target="_blank" rel="noopener">RDA FAIR Data Maturity Model, Data Science Journal, 2020</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>4. An anomaly-detection layer for health facility reporting data (DHIS2)</h3></div>
+      <p class="lede">A lighter-weight sibling to #3: instead of assessing an org's data governance, this flags likely data-entry errors and outliers in DHIS2 facility reporting automatically, with plain-language explanations for district health officers.</p>
+      <div class="grid2">
+        <div class="field"><label>Status</label><div>Your reaction was neutral ("okay") rather than energized — keeping it on the list because DHIS2 is real, deployed infrastructure in Uganda already, but it's the one to revisit only after one of the top two ideas is moving.</div></div>
+        <div class="field"><label>What would make it worth doing</label><div>A real relationship with a district health office or the national DHIS2 team to pilot against — without that, it's a script running on synthetic data with nowhere to go.</div></div>
+      </div>
+      <div class="milestones">
+        <label>If you pick this up later</label>
+        <ol>
+          <li>Get access to a DHIS2 demo instance and pull sample facility-reporting data via its API.</li>
+          <li>Prototype a basic outlier-detection pass before pursuing any real data-access relationship.</li>
+        </ol>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="closing">
+    <p><b>Sequencing:</b> start on #1 (Luganda health-domain benchmark) this week — it's the only idea with existing assets behind it, and the fastest to a visible, citable first release. Run #2 (grant copilot) in parallel if you have the bandwidth, since you'll want it for ACE's next live proposal anyway. #3 (FAIR maturity tool) is the next-best standalone build once #1 has a v0 out. #4 stays parked until there's a real data-access relationship to pilot it against.</p>
+  </div>
+
+</div>

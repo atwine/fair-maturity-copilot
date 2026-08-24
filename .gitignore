@@ -1,0 +1,13 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# env / secrets
+.env
+.env.*
+*.local
+
+# will fill in with stack-specific ignores (node_modules, __pycache__, etc.)
+# once the tech stack is confirmed by the Plan Mode output

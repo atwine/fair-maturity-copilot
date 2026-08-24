@@ -1,0 +1,398 @@
+<title>Ten Ideas for ACE</title>
+<style>
+:root{
+  --paper:#f1efe7;
+  --paper-raised:#ffffff;
+  --ink:#1b2420;
+  --ink-soft:#3f4a44;
+  --line:#d8d3c4;
+  --teal:#1f4b49;
+  --teal-soft:#e6efee;
+  --gold:#b5842a;
+  --gold-soft:#f3e6cb;
+  --good:#3d7a4a;
+  --warn:#a15a12;
+  --mono-bg:#e9e6da;
+  --shadow: 0 1px 2px rgba(27,36,32,0.06), 0 6px 20px -8px rgba(27,36,32,0.12);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#161c19;
+    --paper-raised:#1e2622;
+    --ink:#eae6da;
+    --ink-soft:#b7bdb5;
+    --line:#333f39;
+    --teal:#7fc4bc;
+    --teal-soft:#20302d;
+    --gold:#e0b354;
+    --gold-soft:#332a15;
+    --good:#7cc98e;
+    --warn:#e0a05a;
+    --mono-bg:#1a2320;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#161c19;
+  --paper-raised:#1e2622;
+  --ink:#eae6da;
+  --ink-soft:#b7bdb5;
+  --line:#333f39;
+  --teal:#7fc4bc;
+  --teal-soft:#20302d;
+  --gold:#e0b354;
+  --gold-soft:#332a15;
+  --good:#7cc98e;
+  --warn:#e0a05a;
+  --mono-bg:#1a2320;
+  --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -10px rgba(0,0,0,0.5);
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+*{box-sizing:border-box;}
+html,body{background:var(--paper);}
+body{
+  color:var(--ink);
+  font-family:'Karla',system-ui,-apple-system,sans-serif;
+  line-height:1.55;
+  font-size:16px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:'Fraunces',Georgia,serif;text-wrap:balance;color:var(--ink);}
+.wrap{max-width:980px;margin:0 auto;padding:0 24px 96px;}
+
+/* Masthead */
+.masthead{
+  border-bottom:1px solid var(--line);
+  padding:56px 0 32px;
+}
+.eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12.5px;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--teal);
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:18px;
+}
+.eyebrow::before{content:"";width:7px;height:7px;background:var(--gold);border-radius:50%;display:inline-block;}
+h1{font-size:2.6rem;font-weight:700;line-height:1.08;margin:0 0 14px;letter-spacing:-0.01em;}
+.dek{font-size:1.08rem;color:var(--ink-soft);max-width:640px;margin:0 0 28px;}
+.context-strip{
+  display:flex;flex-wrap:wrap;gap:10px;
+}
+.chip{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  padding:6px 11px;
+  background:var(--paper-raised);
+  border:1px solid var(--line);
+  border-radius:5px;
+  color:var(--ink-soft);
+}
+.chip b{color:var(--ink);font-weight:600;}
+
+/* Section headers */
+.section-head{margin:56px 0 20px;}
+.section-head .n{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;color:var(--teal);letter-spacing:0.06em;
+}
+.section-head h2{font-size:1.55rem;margin:4px 0 8px;font-weight:600;}
+.section-head p{color:var(--ink-soft);max-width:680px;margin:0;font-size:0.97rem;}
+
+/* Landscape note */
+.landscape{
+  background:var(--paper-raised);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:22px 24px;
+  box-shadow:var(--shadow);
+  font-size:0.95rem;
+}
+.landscape ul{margin:10px 0 0;padding-left:20px;}
+.landscape li{margin-bottom:8px;color:var(--ink-soft);}
+.landscape li b{color:var(--ink);}
+.landscape a{color:var(--teal);}
+
+/* Scorecard table */
+.table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);background:var(--paper-raised);}
+table{width:100%;border-collapse:collapse;font-size:0.9rem;min-width:760px;}
+thead th{
+  text-align:left;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.05em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  padding:14px 14px;
+  border-bottom:1px solid var(--line);
+  background:var(--teal-soft);
+  white-space:nowrap;
+}
+tbody td{padding:13px 14px;border-bottom:1px solid var(--line);vertical-align:top;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--teal-soft);}
+.idea-name{font-weight:600;color:var(--ink);}
+.idea-tag{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);margin-top:2px;}
+.score{
+  font-variant-numeric:tabular-nums;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12.5px;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.dots{display:inline-flex;gap:3px;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--line);}
+.dot.on{background:var(--gold);}
+.dot.on.hi{background:var(--good);}
+
+/* Cards */
+.cards{display:flex;flex-direction:column;gap:18px;}
+.card{
+  background:var(--paper-raised);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:26px 28px;
+  box-shadow:var(--shadow);
+}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:10px;}
+.card-head h3{font-size:1.28rem;margin:0;font-weight:600;}
+.rank{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gold);
+  border:1px solid var(--gold-soft);background:var(--gold-soft);
+  padding:3px 8px;border-radius:20px;white-space:nowrap;
+}
+.card p.lede{color:var(--ink-soft);font-size:0.98rem;margin:0 0 14px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;margin-bottom:14px;}
+@media(max-width:640px){.grid2{grid-template-columns:1fr;}}
+.field label{
+  display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;
+  letter-spacing:0.06em;text-transform:uppercase;color:var(--teal);margin-bottom:4px;
+}
+.field div{font-size:0.92rem;color:var(--ink);}
+.sources{font-size:0.85rem;color:var(--ink-soft);border-top:1px dashed var(--line);padding-top:12px;margin-top:4px;}
+.sources a{color:var(--teal);text-decoration:none;border-bottom:1px solid var(--line);}
+.sources a:hover{border-color:var(--teal);}
+
+/* Footer note */
+.closing{
+  margin-top:56px;padding-top:28px;border-top:1px solid var(--line);
+  font-size:0.95rem;color:var(--ink-soft);
+}
+.closing b{color:var(--ink);}
+
+::selection{background:var(--gold-soft);}
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow">Project scoping · Aug 2026</div>
+    <h1>Ten ideas worth building at ACE</h1>
+    <p class="dek">A shortlist grown from what's already trending in African open-source AI, what the literature says is actually missing, and what your specific setup — Kampala, two A100s, a Llama 3.3 70B instance, and working Luganda MT models — can uniquely ship.</p>
+    <div class="context-strip">
+      <span class="chip"><b>ACE Uganda</b> = Bioinformatics &amp; Data Science, 56-node HPC, Google.org AI-for-Science grant, focus on AMR / genomics / infectious disease</span>
+      <span class="chip"><b>Compute</b>: 2× A100 80GB</span>
+      <span class="chip"><b>Models on hand</b>: Llama 3.3 70B, English↔Luganda MT</span>
+      <span class="chip"><b>Goal</b>: publishable, grant-fundable, GitHub-visible</span>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div class="n">Landscape check</div>
+    <h2>What already exists — so we don't rebuild it</h2>
+    <p>Before the list: a few things are already well-covered by strong open-source players. Knowing this is what makes the shortlist below defensible in a grant review.</p>
+  </div>
+  <div class="landscape">
+    <ul>
+      <li><b>Luganda/Ugandan-language translation</b> is already owned by <a href="https://github.com/SunbirdAI" target="_blank" rel="noopener">Sunbird AI</a> (Kampala) — the SALT parallel corpus and a public translation API for five Ugandan languages. Competing head-on here is a weak pitch; contributing to it, or building a domain layer on top of it, is a strong one.</li>
+      <li><b>General-purpose maternal-health LLM chatbots</b> already exist and are deployed at scale: Jacaranda Health's <b>UlizaMama/UlizaLlama</b> serves 12,000+ daily queries in Swahili and four other languages, and Rwanda's <b>Mbaza RBC</b> serves community health workers. A generic "chatbot for X" is not differentiated.</li>
+      <li><b>African genomic bioinformatics infrastructure</b> is coordinated by <b>H3Africa / H3ABioNet</b>, which runs the continent's reference portals (AGMP, AGVD, AHMP). The literature is unusually consistent that the open problem here isn't more infrastructure — it's <b>trust, governance, and representative AMR data</b>, which is a build opportunity, not a dead end.</li>
+      <li><b>Funders are moving money right now</b> toward exactly this shape of work: Gates Foundation + Novo Nordisk + Wellcome's $60M <b>EVAH</b> initiative funds evaluation of deployed AI in primary care across LMICs; Gates + OpenAI's <b>Horizon 1000</b> is deploying AI to 1,000 clinics in Rwanda, Kenya, South Africa and Nigeria; and Gates + Google.org + Microsoft + Masakhane ran <b>LINGUA Africa</b>, grants up to $250K for African-language AI. The pattern: they want <i>deployed, evaluated, representative-data</i> tools — not prototypes.</li>
+    </ul>
+  </div>
+
+  <div class="section-head">
+    <div class="n">The shortlist</div>
+    <h2>Ten ideas, scored</h2>
+    <p>Scored 1–3 dots on three axes: <b>Grant fit</b> (does this match what Gates/Google.org/IDRC are funding right now), <b>Asset fit</b> (does it actually use your A100s, Llama 3.3, and Luganda MT rather than ignoring them), and <b>GitHub payoff</b> (how fast this builds a visible trail of issues/PRs/releases).</p>
+  </div>
+
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>Idea</th><th>Grant fit</th><th>Asset fit</th><th>GitHub payoff</th><th>Build mode</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="idea-name">1. AMR prediction + plain-language reporting</span><span class="idea-tag">genomics · AI-for-Science</span></td><td><span class="score"><span class="dots"><span class="dot on hi"></span><span class="dot on hi"></span><span class="dot on hi"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on hi"></span><span class="dot on hi"></span><span class="dot on hi"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></span></span></td><td>from scratch</td></tr>
+        <tr><td><span class="idea-name">2. Clinical-Luganda MT benchmark</span><span class="idea-tag">NLP · health terminology</span></td><td><span class="score"><span class="dots"><span class="dot on hi"></span><span class="dot on hi"></span><span class="dot"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on hi"></span><span class="dot on hi"></span><span class="dot on hi"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on hi"></span><span class="dot on hi"></span><span class="dot on hi"></span></span></span></td><td>fork + extend</td></tr>
+        <tr><td><span class="idea-name">3. Federated genomic data-sharing toolkit</span><span class="idea-tag">privacy · governance</span></td><td><span class="score"><span class="dots"><span class="dot on hi"></span><span class="dot on hi"></span><span class="dot on hi"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></span></span></td><td>from scratch, hard</td></tr>
+        <tr><td><span class="idea-name">4. Grant &amp; manuscript-writing copilot</span><span class="idea-tag">LLM tooling · internal</span></td><td><span class="score"><span class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on hi"></span><span class="dot on hi"></span><span class="dot on hi"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on hi"></span><span class="dot on hi"></span><span class="dot on hi"></span></span></span></td><td>from scratch, fast</td></tr>
+        <tr><td><span class="idea-name">5. AI data-quality layer for DHIS2/OpenHIE</span><span class="idea-tag">health informatics</span></td><td><span class="score"><span class="dots"><span class="dot on hi"></span><span class="dot on hi"></span><span class="dot"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></span></span></td><td>plugin on existing OSS</td></tr>
+        <tr><td><span class="idea-name">6. NCD-focused CHW decision support</span><span class="idea-tag">deployed pilot</span></td><td><span class="score"><span class="dots"><span class="dot on hi"></span><span class="dot on hi"></span><span class="dot on hi"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></span></span></td><td>from scratch</td></tr>
+        <tr><td><span class="idea-name">7. Luganda voice + vision for smallholder farmers</span><span class="idea-tag">agri · multimodal</span></td><td><span class="score"><span class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on hi"></span><span class="dot on hi"></span><span class="dot"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></span></span></td><td>compose existing OSS</td></tr>
+        <tr><td><span class="idea-name">8. Local-first pathogen genomics dashboard</span><span class="idea-tag">surveillance · sovereignty</span></td><td><span class="score"><span class="dots"><span class="dot on hi"></span><span class="dot on hi"></span><span class="dot"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on hi"></span><span class="dot on hi"></span><span class="dot"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></span></span></td><td>from scratch</td></tr>
+        <tr><td><span class="idea-name">9. Luganda splits for Masakhane benchmarks</span><span class="idea-tag">quick win · OSS contribution</span></td><td><span class="score"><span class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on"></span><span class="dot on"></span><span class="dot"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on hi"></span><span class="dot on hi"></span><span class="dot on hi"></span></span></span></td><td>PRs to existing repos</td></tr>
+        <tr><td><span class="idea-name">10. Reproducibility/provenance tool for bio pipelines</span><span class="idea-tag">infra · dev tooling</span></td><td><span class="score"><span class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on"></span><span class="dot"></span><span class="dot"></span></span></span></td><td><span class="score"><span class="dots"><span class="dot on hi"></span><span class="dot on hi"></span><span class="dot"></span></span></span></td><td>from scratch</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-head">
+    <div class="n">The detail</div>
+    <h2>Each idea, unpacked</h2>
+    <p>What it is, why the literature or the funding landscape backs it, and what a first two-week milestone would look like.</p>
+  </div>
+
+  <div class="cards">
+
+    <div class="card">
+      <div class="card-head"><h3>1. AMR prediction from whole-genome sequencing, with a plain-language clinician report</h3><span class="rank">strongest overall fit</span></div>
+      <p class="lede">Take whole-genome-sequencing data from resistant pathogens, run a deep-learning model (CNN/transformer over genomic features) to predict antimicrobial resistance patterns, then use Llama 3.3 70B to turn the prediction into a short, plain-language report a clinician can act on — in English or Luganda.</p>
+      <div class="grid2">
+        <div class="field"><label>Why now</label><div>This is close to word-for-word what a 2026 review calls for: "building African AMR genomic datasets, investing in AI-ready infrastructure, and developing responsible data-governance frameworks." It also sits inside ACE's own stated focus (AMR, genomics) and existing Google.org AI-for-Science funding.</div></div>
+        <div class="field"><label>Why you specifically</label><div>Two A100s are enough to train and serve a genomic DL model plus run Llama 3.3 for report generation locally — no dependency on external labs, which the literature flags as a real bottleneck (97% of EAC bacterial genomes are currently processed outside the region).</div></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>First two weeks</label><div>Pull a public AMR WGS dataset (PATRIC/NCBI Pathogen Detection), reproduce a baseline resistance classifier, and wire a Llama 3.3 prompt template that turns its output into a one-paragraph clinical summary.</div></div>
+        <div class="field"><label>Watch out for</label><div>Data governance — don't touch identifiable patient data until an ethics review is in place; start on public/lab reference genomes.</div></div>
+      </div>
+      <div class="sources">Sources: <a href="https://doi.org/10.1177/11779322261427123" target="_blank" rel="noopener">Lyimo, 2026, Bioinformatics and Biology Insights</a> · <a href="https://doi.org/10.1186/s12889-024-18990-0" target="_blank" rel="noopener">Nguinkal et al., 2024, BMC Public Health</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>2. A clinical/health-domain Luganda translation benchmark and fine-tune</h3><span class="rank">best GitHub-visibility play</span></div>
+      <p class="lede">General MT models (including Sunbird's) are tuned for everyday language, not medical terms, drug names, or consent-form language. Build an evaluation set of health-domain English↔Luganda sentence pairs, benchmark existing models (including your own MT model and Llama 3.3) against it, and fine-tune where it underperforms.</p>
+      <div class="grid2">
+        <div class="field"><label>Why now</label><div>Funders explicitly want "inclusive, community-grounded AI language resources" — Gates, Google.org, Microsoft and Masakhane ran a dedicated call (LINGUA Africa) for exactly this kind of work.</div></div>
+        <div class="field"><label>Why you specifically</label><div>You already have working English-Luganda MT models — this is extending an asset, not starting cold. It's also the fastest path to real pull requests: contribute the benchmark to Sunbird's <code>salt</code> repo or Masakhane's evaluation suites rather than building a parallel silo.</div></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>First two weeks</label><div>Collect ~200 health-domain sentence pairs (WHO/MoH materials are a good source), run them through your MT model and Llama 3.3, score with a human reviewer, publish results as a GitHub repo with a README and a leaderboard table.</div></div>
+        <div class="field"><label>Watch out for</label><div>Don't duplicate SALT — open an issue on Sunbird's repo first and ask if a health-domain extension is welcome. Collaboration beats a competing dataset.</div></div>
+      </div>
+      <div class="sources">Sources: <a href="https://github.com/SunbirdAI/salt" target="_blank" rel="noopener">SunbirdAI/salt</a> · <a href="https://brittlepaper.com/2026/05/masakhane-african-languages-hub-microsoft-gates-foundation-and-google-org-launch-open-call-for-ai-projects-in-african-languages-grants-of-up-to-250000-available-apply-by-15-june-2026/" target="_blank" rel="noopener">LINGUA Africa call, 2026</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>3. A federated / privacy-preserving toolkit for African genomic data sharing</h3><span class="rank">highest novelty, highest difficulty</span></div>
+      <p class="lede">The single most repeated finding across the bioinformatics-data-sharing literature isn't a technical gap — it's trust. Researchers want to share data but fear misuse, scooping, and inequitable benefit. A tool that lets institutions train shared models (e.g. an AMR classifier) <i>without moving raw data off-site</i> — federated learning or a differential-privacy layer — addresses the actual stated blocker.</p>
+      <div class="grid2">
+        <div class="field"><label>Why now</label><div>Five separate 2024 papers, independently, land on the same finding: African health researchers want to share data but institutional trust and governance gaps stop them.</div></div>
+        <div class="field"><label>Why you specifically</label><div>Your two A100s make you a credible compute node in a federated setup; ACE's H3Africa-adjacent network gives you a natural first partner list.</div></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>First two weeks</label><div>Prototype federated averaging (e.g. with Flower or NVFlare) across two simulated "sites" on your own machine, training a toy classifier on split synthetic genomic data, before ever touching a partner institution.</div></div>
+        <div class="field"><label>Watch out for</label><div>This is a multi-institution, multi-year effort in its full form — treat the first release as infrastructure/proof-of-concept, not a finished protocol.</div></div>
+      </div>
+      <div class="sources">Sources: <a href="https://doi.org/10.1371/journal.pdig.0000635" target="_blank" rel="noopener">Chabilall et al., 2024, PLOS Digital Health</a> · <a href="https://doi.org/10.1371/journal.pdig.0000551" target="_blank" rel="noopener">Brown et al., 2024, PLOS Digital Health</a> · <a href="https://doi.org/10.58177/ajb240007" target="_blank" rel="noopener">Ekusai Sebatta et al., 2024</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>4. An LLM-assisted grant and manuscript-writing copilot for African researchers</h3><span class="rank">fastest to a working v1</span></div>
+      <p class="lede">A RAG-backed assistant built on Llama 3.3 70B that knows NIH/Gates/IDRC/Wellcome proposal formats, pulls in relevant prior literature, and helps draft/critique sections — aimed specifically at early-career researchers who "may lack access to advanced training or mentorship," which a 2026 review names directly as an underused LLM application in African bioinformatics.</p>
+      <div class="grid2">
+        <div class="field"><label>Why now</label><div>It's self-serving in the best way: ACE survives on grant writing, so you'd be your own first user and case study — real adoption data ("our own center used this to help write N proposals") is exactly the deployed-impact evidence funders want to see.</div></div>
+        <div class="field"><label>Why you specifically</label><div>Llama 3.3 70B locally means no per-token API cost and no sending unpublished research ideas to a third-party API — a real selling point for researchers wary of leaking grant ideas.</div></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>First two weeks</label><div>Build a simple RAG pipeline over 10-15 successful past ACE proposals + funder guidelines, wrap it in a basic web UI, and use it yourself on the next real proposal.</div></div>
+        <div class="field"><label>Watch out for</label><div>Keep humans fully in the loop on anything submitted — position it as a drafting aid, never an autonomous writer, both ethically and because funders read for authentic voice.</div></div>
+      </div>
+      <div class="sources">Sources: <a href="https://doi.org/10.1177/11779322261427123" target="_blank" rel="noopener">Lyimo, 2026, Bioinformatics and Biology Insights</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>5. An AI data-quality and anomaly-detection layer for DHIS2 / OpenHIE</h3></div>
+      <p class="lede">Uganda already has real momentum in eHealth interoperability, largely through DHIS2 and OpenHIE-aligned national strategies. Build an add-on that flags likely data-entry errors, outliers, or missing-data patterns in DHIS2 facility reporting using anomaly-detection ML, with an LLM layer to explain flags in plain language to district health officers.</p>
+      <div class="grid2">
+        <div class="field"><label>Why now</label><div>A 2026 scoping review names Uganda specifically as a country with "greater momentum" on interoperability, while flagging "limited technical capacity" as the main barrier — a tool, not a new platform, is what's missing.</div></div>
+        <div class="field"><label>Why you specifically</label><div>DHIS2 is already deployed nationally, so this plugs into existing infrastructure rather than asking anyone to adopt something new — a much easier deployment story for a grant.</div></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>First two weeks</label><div>Get access to a DHIS2 demo instance, pull its API data, and prototype a simple outlier-detection script on synthetic facility-reporting data.</div></div>
+        <div class="field"><label>Watch out for</label><div>Requires an actual district/MoH relationship to pilot with real data — this is a slower-burn idea unless you already have that connection.</div></div>
+      </div>
+      <div class="sources">Sources: <a href="https://doi.org/10.1136/bmjhci-2025-101678" target="_blank" rel="noopener">Kamuhanda et al., 2026, BMJ Health &amp; Care Informatics</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>6. A narrowly-scoped CHW decision-support tool for non-communicable disease screening</h3></div>
+      <p class="lede">Maternal health chatbots are a crowded field (UlizaMama, Mbaza RBC). Non-communicable diseases — hypertension, diabetes, which are rising fast in Uganda — are comparatively under-served by community-health-worker digital tools. Build a narrow, offline-first triage/referral aid for CHWs screening for NCDs, in Luganda.</p>
+      <div class="grid2">
+        <div class="field"><label>Why now</label><div>Gates Foundation's EVAH initiative is specifically funding evaluation of deployed AI tools in primary/community health in LMICs — a real pilot with outcome data is exactly their target artifact.</div></div>
+        <div class="field"><label>Why you specifically</label><div>Luganda MT + Llama 3.3 gets you a local-language interface fast; the differentiator is the narrow disease focus and an actual field pilot, not the chatbot mechanics.</div></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>First two weeks</label><div>Draft a simple WHO-aligned NCD screening decision tree, then wrap it as a scripted (not open-ended) Luganda conversation flow — decision-tree first, LLM-generated free text second.</div></div>
+        <div class="field"><label>Watch out for</label><div>Needs a real CHW partner to pilot with, and clinical sign-off on the screening logic before any field use.</div></div>
+      </div>
+      <div class="sources">Sources: <a href="https://www.gatesfoundation.org/ideas/media-center/press-releases/2026/02/ai-impact-health" target="_blank" rel="noopener">Gates Foundation EVAH announcement, 2026</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>7. A Luganda voice interface over crop-disease detection, linked to market prices</h3></div>
+      <p class="lede">Crop-disease image classification is one of the most duplicated project types on GitHub — dozens of near-identical PlantVillage-based repos exist already. The gap isn't the vision model, it's access: a Luganda voice interface a farmer can actually use, paired with local market price data so the advice is economically actionable, not just diagnostic.</p>
+      <div class="grid2">
+        <div class="field"><label>Why now</label><div>Food security work is fundable, but this idea only earns its place if it's honest about where the real contribution is — the interface and data linkage, not another disease classifier.</div></div>
+        <div class="field"><label>Why you specifically</label><div>Composing existing open models (a pretrained PlantVillage-style classifier) with your own Luganda voice/MT stack is a fast build, and a good showcase of integration skill for your GitHub profile.</div></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>First two weeks</label><div>Wire an existing open crop-disease model to a simple Luganda voice front-end (speech-to-text → MT → model → MT back → text-to-speech) as a proof of concept, no market data yet.</div></div>
+        <div class="field"><label>Watch out for</label><div>Be explicit in any writeup that the vision model is reused, not novel — credit it clearly; the contribution claim should rest on the interface and market layer.</div></div>
+      </div>
+      <div class="sources">Sources: GitHub topic search, crop-disease-detection / agricultural-ai, Aug 2026</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>8. A local-first pathogen genomics surveillance dashboard for East Africa</h3></div>
+      <p class="lede">Right now, the overwhelming majority of bacterial pathogen genomes collected in the East African Community are sequenced in-region but analyzed abroad. Build an open dashboard/pipeline that processes pathogen WGS data locally (using your A100s) and visualizes AMR/outbreak trends for regional public health labs — reducing that external dependency directly.</p>
+      <div class="grid2">
+        <div class="field"><label>Why now</label><div>A 2024 assessment found ~97% of publicly available EAC bacterial genome assemblies were processed by external organizations, and named "lack of adequate computing resources" as a top barrier — which you specifically don't have.</div></div>
+        <div class="field"><label>Why you specifically</label><div>This is close cousin to Idea 1 (AMR prediction) but framed as regional infrastructure/capacity-building rather than a single tool — a strong complementary pairing if you pursue both.</div></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>First two weeks</label><div>Stand up an open dockerized AMR-calling pipeline (existing tools like ResFinder/AMRFinderPlus) on your A100 box and process a public EAC pathogen dataset end-to-end.</div></div>
+        <div class="field"><label>Watch out for</label><div>Coordinate with national public health labs (NPHLs) early — this is infrastructure other institutions need to trust and actually use.</div></div>
+      </div>
+      <div class="sources">Sources: <a href="https://doi.org/10.1186/s12889-024-18990-0" target="_blank" rel="noopener">Nguinkal et al., 2024, BMC Public Health</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>9. Luganda evaluation splits for existing African-NLP benchmarks</h3><span class="rank">do this first, in parallel</span></div>
+      <p class="lede">Masakhane's MasakhaNER, AfriQA and similar benchmarks cover many African languages but have thin or missing Luganda coverage. Add Luganda test splits, benchmark Llama 3.3 70B and your own MT model against them, and submit the results as pull requests to the existing repos.</p>
+      <div class="grid2">
+        <div class="field"><label>Why now</label><div>This is the lowest-risk, fastest way to get real commits, issues, and PRs on your GitHub — visible activity on well-known, well-starred repos, rather than a solo repo nobody discovers.</div></div>
+        <div class="field"><label>Why you specifically</label><div>You already have the two hardest ingredients most contributors lack: a working Luganda MT model and GPU access to actually run the evaluations.</div></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>First two weeks</label><div>Pick one benchmark (start with MasakhaNER), read its contribution guide, annotate a small Luganda test split, and open a draft PR — even a partial one starts the conversation with maintainers.</div></div>
+        <div class="field"><label>Watch out for</label><div>This is a visibility/skills-building move, not a grant-magnet on its own — pair it with one of the bigger ideas above.</div></div>
+      </div>
+      <div class="sources">Sources: <a href="https://github.com/topics/low-resource-languages" target="_blank" rel="noopener">GitHub Topics: low-resource-languages</a> · Masakhane project repos</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>10. A reproducibility and provenance tool for African bioinformatics pipelines</h3></div>
+      <p class="lede">A 2023 survey of sub-Saharan African data-intensive researchers found 40% had no formal process for storing data beyond a project's lifecycle, and most institutions provide no training on data management practice. Build a lightweight, opinionated wrapper around Nextflow/Snakemake that auto-tracks provenance, versions datasets, and packages a pipeline for handoff — aimed at labs without a dedicated data engineer.</p>
+      <div class="grid2">
+        <div class="field"><label>Why now</label><div>It's a real, named, survey-backed gap — and a developer-tooling project is exactly the kind of thing that reads well on a GitHub profile as "infrastructure other researchers actually adopted."</div></div>
+        <div class="field"><label>Why you specifically</label><div>ACE runs its own bioinformatics pipelines already — you'd be solving your own team's problem first, then open-sourcing it, which is the strongest kind of dogfooding story for a grant narrative.</div></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>First two weeks</label><div>Take one existing ACE bioinformatics pipeline, wrap it in Nextflow if it isn't already, and add automatic run-metadata logging (inputs, versions, outputs) as the first feature.</div></div>
+        <div class="field"><label>Watch out for</label><div>This is a devtools project — its value depends entirely on real adoption by a second team, not just your own use.</div></div>
+      </div>
+      <div class="sources">Sources: <a href="https://doi.org/10.17159/sajs.2023/15129" target="_blank" rel="noopener">Kabanda et al., 2023, South African Journal of Science</a></div>
+    </div>
+
+  </div>
+
+  <div class="closing">
+    <p><b>Where I'd start:</b> Idea 9 (Masakhane PRs) is a near-zero-risk first move you can begin this week purely for visibility. Idea 4 (grant-writing copilot) is the fastest path to a working, self-adopted tool with a real usage story. Ideas 1 and 8 (AMR prediction, pathogen genomics dashboard) are the strongest long-run grant magnets because they sit exactly on ACE's existing mandate and existing funding relationship with Google.org — and they're complementary enough to become one larger proposal rather than two competing ones.</p>
+  </div>
+
+</div>

@@ -1,0 +1,170 @@
+<title>Two Ideas for ACE, One Engine</title>
+<style>
+:root{
+  --paper:#f1efe7; --paper-raised:#ffffff; --ink:#1b2420; --ink-soft:#3f4a44;
+  --line:#d8d3c4; --teal:#1f4b49; --teal-soft:#e6efee; --gold:#b5842a; --gold-soft:#f3e6cb;
+  --good:#3d7a4a; --bad:#a13a2c; --bad-soft:#f4e3df; --good-soft:#e4f0e6;
+  --shadow: 0 1px 2px rgba(27,36,32,0.06), 0 6px 20px -8px rgba(27,36,32,0.12);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#161c19; --paper-raised:#1e2622; --ink:#eae6da; --ink-soft:#b7bdb5;
+    --line:#333f39; --teal:#7fc4bc; --teal-soft:#20302d; --gold:#e0b354; --gold-soft:#332a15;
+    --good:#7cc98e; --bad:#e08a78; --bad-soft:#3a231e; --good-soft:#1f2e22;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -10px rgba(0,0,0,0.5);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#161c19; --paper-raised:#1e2622; --ink:#eae6da; --ink-soft:#b7bdb5;
+  --line:#333f39; --teal:#7fc4bc; --teal-soft:#20302d; --gold:#e0b354; --gold-soft:#332a15;
+  --good:#7cc98e; --bad:#e08a78; --bad-soft:#3a231e; --good-soft:#1f2e22;
+  --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px -10px rgba(0,0,0,0.5);
+}
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+*{box-sizing:border-box;}
+html,body{background:var(--paper);}
+body{color:var(--ink);font-family:'Karla',system-ui,sans-serif;line-height:1.55;font-size:16px;-webkit-font-smoothing:antialiased;}
+h1,h2,h3{font-family:'Fraunces',Georgia,serif;text-wrap:balance;color:var(--ink);}
+.wrap{max-width:960px;margin:0 auto;padding:0 24px 96px;}
+.masthead{border-bottom:1px solid var(--line);padding:56px 0 32px;}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--teal);display:flex;align-items:center;gap:8px;margin-bottom:18px;}
+.eyebrow::before{content:"";width:7px;height:7px;background:var(--gold);border-radius:50%;display:inline-block;}
+h1{font-size:2.4rem;font-weight:700;line-height:1.1;margin:0 0 14px;letter-spacing:-0.01em;}
+.dek{font-size:1.06rem;color:var(--ink-soft);max-width:660px;margin:0;}
+
+.status-row{display:flex;flex-wrap:wrap;gap:10px;margin:28px 0 0;}
+.pill{font-family:'IBM Plex Mono',monospace;font-size:12px;padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--paper-raised);}
+.pill .dot{width:7px;height:7px;border-radius:50%;}
+.pill.active .dot{background:var(--good);}
+.pill.parked .dot{background:var(--gold);}
+.pill.dropped .dot{background:var(--bad);}
+.pill.dropped{text-decoration:line-through;color:var(--ink-soft);}
+
+.engine{
+  margin:44px 0 0;
+  background:var(--teal-soft);
+  border:1px solid var(--teal);
+  border-radius:12px;
+  padding:28px 30px;
+}
+.engine h2{font-size:1.3rem;margin:0 0 10px;font-weight:600;}
+.engine p{margin:0 0 14px;color:var(--ink-soft);font-size:0.97rem;max-width:700px;}
+.engine p:last-child{margin-bottom:0;}
+.flow{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  font-family:'IBM Plex Mono',monospace;font-size:12.5px;margin:16px 0 4px;
+}
+.flow .step{background:var(--paper-raised);border:1px solid var(--line);border-radius:6px;padding:8px 12px;white-space:nowrap;}
+.flow .arrow{color:var(--teal);font-weight:600;}
+
+.section-head{margin:52px 0 20px;}
+.section-head .n{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--teal);letter-spacing:0.06em;}
+.section-head h2{font-size:1.5rem;margin:4px 0 8px;font-weight:600;}
+.section-head p{color:var(--ink-soft);max-width:680px;margin:0;font-size:0.97rem;}
+
+.cards{display:flex;flex-direction:column;gap:20px;}
+.card{background:var(--paper-raised);border:1px solid var(--line);border-radius:10px;padding:28px 30px;box-shadow:var(--shadow);}
+.card.build-first{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold), var(--shadow);}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:6px;}
+.card-head h3{font-size:1.32rem;margin:0;font-weight:600;}
+.badge{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gold);border:1px solid var(--gold-soft);background:var(--gold-soft);padding:3px 10px;border-radius:20px;white-space:nowrap;}
+.card p.lede{color:var(--ink-soft);font-size:0.98rem;margin:0 0 16px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px;margin-bottom:16px;}
+@media(max-width:640px){.grid2{grid-template-columns:1fr;}}
+.field label{display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.06em;text-transform:uppercase;color:var(--teal);margin-bottom:4px;}
+.field div{font-size:0.93rem;color:var(--ink);}
+.milestones{border-top:1px solid var(--line);padding-top:16px;margin-top:4px;}
+.milestones label{display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.06em;text-transform:uppercase;color:var(--teal);margin-bottom:8px;}
+.milestones ol{margin:0;padding-left:20px;}
+.milestones li{margin-bottom:6px;font-size:0.93rem;}
+.sources{font-size:0.85rem;color:var(--ink-soft);border-top:1px dashed var(--line);padding-top:12px;margin-top:14px;}
+.sources a{color:var(--teal);text-decoration:none;border-bottom:1px solid var(--line);}
+
+.parked-note{background:var(--paper-raised);border:1px dashed var(--line);border-radius:10px;padding:18px 22px;font-size:0.93rem;color:var(--ink-soft);margin-top:18px;}
+.parked-note b{color:var(--ink);}
+
+.closing{margin-top:56px;padding-top:28px;border-top:1px solid var(--line);font-size:0.95rem;color:var(--ink-soft);}
+.closing b{color:var(--ink);}
+::selection{background:var(--gold-soft);}
+</style>
+
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="eyebrow">Project scoping · v3 · Aug 2026</div>
+    <h1>One engine, two applications</h1>
+    <p class="dek">The FAIR maturity tool and the OMOP data-quality translator turned out to be the same underlying build, aimed at two different technical standards. That's not a coincidence worth ignoring — it's a sequencing advantage.</p>
+    <div class="status-row">
+      <span class="pill active"><span class="dot"></span>#3 FAIR maturity — build first</span>
+      <span class="pill active"><span class="dot"></span>#4 OMOP data-quality translator — build second</span>
+      <span class="pill parked"><span class="dot"></span>#1 Luganda health MT — parked until eval work finishes</span>
+      <span class="pill dropped"><span class="dot"></span>#2 grant copilot — dropped, adoption risk</span>
+    </div>
+  </div>
+
+  <div class="engine">
+    <h2>The shared engine: a "standard-to-plain-language" copilot</h2>
+    <p>Both #3 and #4 take a dense, expert-built technical framework — the RDA's 41 FAIR indicators, or OHDSI's 3,300+ automated data-quality checks — and a non-technical stakeholder who's supposed to act on it but can't parse the output. Both need the same three-stage core: <b>run the checks → score/structure the findings → have an LLM turn each finding into a plain-language "what's wrong and what to do" step.</b> Build that core once against #3, where it's easiest to test (no database dependency, just a guided questionnaire), then point the same core at #4's OMOP output once there's real OMOP CDM data to run it against.</p>
+    <div class="flow">
+      <span class="step">structured findings in</span><span class="arrow">→</span>
+      <span class="step">severity scoring</span><span class="arrow">→</span>
+      <span class="step">LLM remediation writer</span><span class="arrow">→</span>
+      <span class="step">plain-language report out</span>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div class="n">Build order</div>
+    <h2>Two ideas, sequenced</h2>
+  </div>
+
+  <div class="cards">
+
+    <div class="card build-first">
+      <div class="card-head"><h3>3. Guided FAIR data maturity assessment and remediation tool</h3><span class="badge">build first</span></div>
+      <p class="lede">Walk a research group or health-data holder through the RDA FAIR Data Maturity Model in plain language, score it, then have Llama 3.3 turn each weak indicator into a specific, actionable fix. No external data dependency — you can build and test this entirely against ACE's own data practices.</p>
+      <div class="grid2">
+        <div class="field"><label>Why build this half of the engine first</label><div>It's self-contained: a questionnaire, a scoring rubric, an LLM remediation step. No waiting on TASO's data access or ETL decisions to start.</div></div>
+        <div class="field"><label>What's already out there</label><div><a href="https://www.f-uji.net" target="_blank" rel="noopener">F-UJI</a> automates 16 of 41 RDA indicators but reads as expert-only output — nothing wraps it (or the 25 manual indicators) in a guided, plain-language flow.</div></div>
+      </div>
+      <div class="milestones">
+        <label>First two weeks</label>
+        <ol>
+          <li>Pick the 10-12 RDA indicators most relevant to a health-data-holding research center.</li>
+          <li>Build the guided questionnaire + scoring rubric (a simple web form is enough for v0).</li>
+          <li>Build the "structured findings → plain-language remediation" engine as its own reusable module, not hardcoded to FAIR — this is the piece #4 will reuse.</li>
+          <li>Run it on ACE's own data practices as the first real test.</li>
+        </ol>
+      </div>
+      <div class="sources">Source: <a href="https://datascience.codata.org/articles/10.5334/dsj-2020-041" target="_blank" rel="noopener">RDA FAIR Data Maturity Model, Data Science Journal, 2020</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>4. A plain-language translator for OMOP CDM data-quality reports</h3><span class="badge">build second</span></div>
+      <p class="lede">OHDSI's own Data Quality Dashboard already runs 3,300+ automated checks against an OMOP CDM database — the checking engine isn't the gap. The gap is that its output is an R-generated technical report built for informaticists. Point stage 3 of the shared engine (the plain-language remediation writer) at DQD's output instead of FAIR's, and TASO's data team gets a report they can actually act on.</p>
+      <div class="grid2">
+        <div class="field"><label>Why this waits for #3</label><div>It needs an actual OMOP CDM database to run against — which depends on your team's still-open decision on TASO's source system and ETL path. Building the remediation engine against #3 first means #4 is mostly wiring, not new design, once that data exists.</div></div>
+        <div class="field"><label>Explicitly not in scope</label><div>Building a new ETL engine. Several OpenMRS→OMOP ETL attempts already exist (<a href="https://github.com/jayasanka-sack/openmrs-to-omop" target="_blank" rel="noopener">jayasanka-sack/openmrs-to-omop</a>, <a href="https://github.com/dermatologist/hephaestus" target="_blank" rel="noopener">Hephaestus</a>) and a full harmonization platform already exists pan-continentally (INSPIRE datahub). Whatever ETL path your team picks, this tool starts downstream of it, at the OMOP database.</div></div>
+      </div>
+      <div class="milestones">
+        <label>Once TASO's OMOP data exists</label>
+        <ol>
+          <li>Run OHDSI's Achilles + Data Quality Dashboard against it to get the raw structured findings.</li>
+          <li>Feed those findings into the remediation engine built for #3, adapting only the input parser and severity mapping.</li>
+          <li>Pilot the plain-language report with TASO's actual data staff and revise based on what still doesn't land.</li>
+        </ol>
+      </div>
+      <div class="sources">Sources: <a href="https://ohdsi.github.io/DataQualityDashboard/" target="_blank" rel="noopener">OHDSI Data Quality Dashboard</a> · <a href="https://github.com/OHDSI/Achilles" target="_blank" rel="noopener">OHDSI Achilles</a> · <a href="https://www.frontiersin.org/journals/digital-health/articles/10.3389/fdgth.2024.1329630/full" target="_blank" rel="noopener">INSPIRE datahub, Frontiers in Digital Health, 2024</a></div>
+    </div>
+
+  </div>
+
+  <div class="parked-note">
+    <b>#1, Luganda health-domain MT</b> — still the strongest idea on paper (existing models, existing eval set, a live fine-tuning plan, a team with a track record in this exact area), but you're mid-way through a real data effort: 10,000+ curated pairs being finalized, 1,000 already through third-party evaluation. Revisit once that evaluation lands — the two-week plan from v2 still applies, it's just not this month's build.
+  </div>
+
+  <div class="closing">
+    <p><b>Net result:</b> you're not choosing between two unrelated ideas — you're building one reusable "make a technical standard usable by a non-expert" engine, and applying it twice. That's a stronger GitHub story than two disconnected repos: the second release ships faster because the first one already did the hard design work, and the pattern itself (plain-language layer over a rigid technical checklist) is something you could point at other standards later if it lands well.</p>
+  </div>
+
+</div>

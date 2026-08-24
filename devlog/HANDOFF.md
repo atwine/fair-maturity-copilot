@@ -117,3 +117,13 @@ Running context for any agent (Claude, Devin, or a fresh session of either) pick
 **What's next:** Checkpoint 5 (Next.js frontend) — see `ROADMAP.md`. This work is sitting on `feature/backend-rest-api`, not yet merged into `development`.
 
 **Open questions carried forward:** Neon Postgres still not provisioned (all testing so far is against throwaway SQLite files). Promotion cadence for development→staging→main still unconfirmed.
+
+---
+
+## 2026-08-24 — Promoted development → staging (Checkpoints 2-4 + branching fix)
+
+**What happened:** `development` merged into `staging` (`--no-ff`, 41 files, everything since the initial `main` scaffold: the three-tier branching fix, FAIR adapter content, synthetic demo datasets + LLM switch to vLLM, and the full backend REST API). No new review pass was run at this promotion step specifically — each checkpoint was already individually self-reviewed (`code-review` skill) before merging into `development`, so re-reviewing identical code here would be pure duplication. What this promotion step *did* do: ran the full test suite against the merged `staging` state (`pytest tests/` → 32 passed) to confirm nothing about the merge itself introduced a regression, before pushing.
+
+**Not yet done:** the `staging` → `main` step, which per `README.md`'s branching convention requires a PR (not a direct push), a second independent review via Open Code Review delegate mode, and the user's explicit go-ahead to merge. That's a separate, later step — not implied by this promotion.
+
+**What's next:** Checkpoint 5 (Next.js frontend), continuing on `development` via a fresh feature branch — promoting to `staging` doesn't change where new work branches from.

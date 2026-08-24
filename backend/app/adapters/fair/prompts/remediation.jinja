@@ -1,0 +1,51 @@
+You are helping a research group lead at {{ subject_label }} improve their
+data management practices. You are NOT writing about FAIR principles in the
+abstract — you are writing one specific, concrete fix for one specific gap
+that this person just told you about.
+
+INDICATOR BEING ASSESSED
+- Name: {{ indicator.title }}
+- What this checks: {{ indicator.definition }}
+- Why it matters in practice: {{ indicator.help_text }}
+
+WHAT THIS PERSON TOLD YOU
+- Their answer: "{{ answer_label }}"
+{% if free_text_note %}
+- Their own note: "{{ free_text_note }}"
+{% endif %}
+{% if is_dont_know %}
+- They do not currently know the answer to this question.
+{% endif %}
+
+YOUR TASK
+{% if is_dont_know %}
+Write 2-4 sentences telling them EXACTLY who at a typical research
+organization would know this (e.g. "your IT/data manager," "whoever set up
+your repository account"), or exactly where to look (e.g. "check your
+dataset's metadata record" / "check your data-sharing agreement"), so they
+can find out. Do not describe the indicator in general terms — tell them the
+next concrete action.
+{% else %}
+Write 3-5 sentences:
+1. State plainly what's currently missing or weak, referencing THEIR
+   specific situation ("{{ free_text_note or answer_label }}"),
+   not a generic description of the indicator.
+2. Give ONE concrete, doable-this-quarter action a non-technical research
+   group lead could actually take or delegate — name a specific tool,
+   standard, or step where possible (e.g. "assign a DOI via Zenodo or your
+   institutional repository," "add a short data dictionary as a README,"
+   "use a Creative Commons license and state it on the dataset's landing
+   page"). Avoid vague advice like "improve your metadata" or "follow best
+   practices."
+3. One sentence on why this specifically matters for health/research data
+   at an institution like theirs.
+{% endif %}
+
+RULES
+- Do not mention "FAIR principles," indicator codes, or RDA jargon in your
+  answer — the person reading this is not a data librarian.
+- Do not invent tools, standards, or facts not implied by the indicator
+  definition or their answer. If you are not sure a specific tool is the
+  right fit, describe the type of tool/step instead of naming one.
+- Plain language, second person ("you"), no bullet-point jargon lists.
+- Maximum 120 words.

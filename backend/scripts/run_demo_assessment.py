@@ -19,7 +19,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.adapters.fair.adapter import FairAdapter
-from app.adapters.fair.prompt import PROMPT_VERSION, render_remediation_prompt
 from app.config import settings
 from app.engine.models import Answer, AssessmentRun
 from app.engine.remediation import write_remediation
@@ -51,9 +50,11 @@ def run_one(dataset: dict, adapter: FairAdapter) -> None:
         findings.append(finding)
 
         if finding.severity != "pass":
-            prompt = render_remediation_prompt(indicator=indicator, answer=answer, subject_label=dataset["subject_label"])
+            prompt = adapter.render_remediation_prompt(
+                indicator=indicator, answer=answer, subject_label=dataset["subject_label"]
+            )
             draft = write_remediation(
-                finding=finding, answer=answer, prompt=prompt, prompt_version=PROMPT_VERSION
+                finding=finding, answer=answer, prompt=prompt, prompt_version=adapter.prompt_version
             )
             remediations_by_finding_id[str(finding.id)] = draft
             remediation_count += 1

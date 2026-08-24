@@ -4,7 +4,7 @@ A guided, plain-language FAIR data-maturity assessment tool for research organiz
 
 ## Status
 
-**In progress.** The backend engine, FAIR adapter content, and remediation-writer prompt are all built and tested — including a full end-to-end demo run against 4 synthetic datasets and a live LLM (see [`docs/demo_reports/`](docs/demo_reports/)). The REST API and the Next.js frontend are next. See [`ROADMAP.md`](ROADMAP.md) for current checkpoint status and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
+**In progress.** The backend — engine, FAIR adapter content, remediation prompt, and REST API — is fully built and tested, including live end-to-end runs against vLLM (see [`docs/demo_reports/`](docs/demo_reports/)). The Next.js frontend is next; until it exists, the API is exercised directly (see below) or via `scripts/run_demo_assessment.py`. See [`ROADMAP.md`](ROADMAP.md) for current checkpoint status and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
 
 ## The problem
 
@@ -43,7 +43,23 @@ cp .env.example .env   # then fill in DATABASE_URL (see the file for a free Neon
 ./.venv/Scripts/python.exe scripts/seed_indicators.py   # loads the 12 FAIR indicators into the DB
 ```
 
-Most tests (`tests/engine/`, `tests/adapters/fair/`) need no database or LLM connection — they're the fastest way to confirm the setup works. `seed_indicators.py` does need a real `DATABASE_URL` (Postgres via Neon, or a local SQLite URL like `sqlite:///./dev.db` for quick local testing).
+Most tests (`tests/engine/`, `tests/adapters/fair/`) need no database or LLM connection — they're the fastest way to confirm the setup works. `tests/api/` needs no external DB either (each test gets its own throwaway SQLite file), but `tests/api/test_report_live.py` does call the real LLM configured in `.env`. `seed_indicators.py` needs a real `DATABASE_URL` (Postgres via Neon, or a local SQLite URL like `sqlite:///./dev.db` for quick local testing) — run it before starting the API, or report generation will fail with a clear error telling you to.
+
+```bash
+./.venv/Scripts/python.exe -m uvicorn app.main:app --reload   # http://localhost:8000/docs for interactive API docs
+```
+
+### API surface
+
+| Method | Path | What it does |
+|---|---|---|
+| GET | `/adapters/{adapter_id}/questions` | The ordered question set for an adapter (currently just `fair-v0`) |
+| POST | `/assessments` | Start a new assessment run |
+| GET | `/assessments/{id}` | Run status + which indicators are answered so far |
+| PUT | `/assessments/{id}/answers/{indicator_id}` | Submit or update one answer |
+| POST | `/assessments/{id}/complete` | Mark a run complete — fails if any indicator is unanswered |
+| GET | `/assessments/{id}/report` | Generate (once) or fetch the cached report — plain-language findings + score |
+| POST | `/assessments/{id}/findings/{indicator_id}/regenerate` | Force one finding's remediation to be redone |
 
 ## Branching convention
 
@@ -68,8 +84,9 @@ feature/<name>  →  development  →  staging  →  main
 backend/
   app/
     engine/            — standard-agnostic core (models, scoring, remediation, LLM client)
+    adapters/registry.py — maps adapter_id -> concrete adapter; the only file allowed to know FAIR exists
     adapters/fair/      — FAIR-specific indicators.yaml, adapter, scoring rubric, remediation prompt
-    api/                — REST routes (not yet built)
+    api/                — REST routes + schemas (see "API surface" above)
   fixtures/             — synthetic demo dataset profiles (no real ACE/TASO data touches an LLM)
   scripts/               — seed_indicators.py, run_demo_assessment.py
   tests/                 — engine boundary, FAIR adapter, remediation grounding, fixture checks

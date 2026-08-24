@@ -101,3 +101,19 @@ Running context for any agent (Claude, Devin, or a fresh session of either) pick
 **What's next:** Checkpoint 4 (backend REST API) — see `ROADMAP.md`. This work is sitting on `feature/synthetic-demo-datasets`, not yet merged into `development`.
 
 **Open questions carried forward:** Neon Postgres still not provisioned. Promotion cadence for development→staging→main still unconfirmed. Worth reading a couple of the generated `docs/demo_reports/*.md` files directly if picking this up cold — they're the clearest evidence of what the pipeline actually produces right now.
+
+---
+
+## 2026-08-24 — Checkpoint 4: backend REST API
+
+**What exists now:** `backend/app/api/` — `routes_questions.py`, `routes_assessment.py`, `routes_answers.py`, `routes_report.py`, `schemas.py` — all wired into `main.py`. `backend/app/adapters/registry.py` added (`adapter_id` → concrete adapter lookup). `engine/ports.py`'s `Adapter` Protocol extended with `render_remediation_prompt` and `prompt_version`, implemented by `FairAdapter`; `scripts/run_demo_assessment.py` updated to go through the adapter methods instead of importing FAIR's prompt module directly, for consistency. Full suite: `pytest tests/` → 32 passed, including a live suite (`tests/api/test_report_live.py`) that calls the real vLLM endpoint for report generation, cache-hit verification, and the regenerate endpoint.
+
+**What was decided:** report generation is cached — one `Report` DB row per run, generated on first `GET /report`, every later call returns it without touching the LLM again. This was a deliberate design choice, not a default: report generation calls the LLM once per weak/unknown finding, so re-generating on every page view would be both slow and wasteful. `POST .../findings/{id}/regenerate` exists for the one case you do want to redo — a single finding whose remediation didn't land well.
+
+**Infrastructure note, not a bug in this repo:** partway through writing the live report tests, the vLLM endpoint stopped responding entirely (even `GET /v1/models` timed out — a server-side outage, not a slow-generation issue). Verified the new route logic was correct in the meantime by pointing at Ollama instead of blocking on it. vLLM came back during the same session; the full live suite was then run against it and passed cleanly. If a future session hits LLM timeouts on `tests/api/test_report_live.py`, check `curl http://10.35.50.41:8000/v1/models` first — it's very possibly this again, not a code regression.
+
+**Bug found in self-review:** `_generate_report` in `routes_report.py` did an unguarded dict lookup for each answer's `Indicator` row, which raised a raw `KeyError` (opaque 500) if `scripts/seed_indicators.py` hadn't been run against that database yet — a genuinely likely setup-order mistake, since answering and completing a run don't touch the DB's `Indicator` table at all (they validate against the adapter's in-memory question set), so the failure only surfaces at report-generation time. Fixed with a clear error message; regression test added using a deliberately unseeded database.
+
+**What's next:** Checkpoint 5 (Next.js frontend) — see `ROADMAP.md`. This work is sitting on `feature/backend-rest-api`, not yet merged into `development`.
+
+**Open questions carried forward:** Neon Postgres still not provisioned (all testing so far is against throwaway SQLite files). Promotion cadence for development→staging→main still unconfirmed.

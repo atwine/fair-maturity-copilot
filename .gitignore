@@ -3,11 +3,25 @@
 Thumbs.db
 .vscode/
 .idea/
+*.code-workspace
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Node / Next.js (frontend not scaffolded yet, pre-declared)
+node_modules/
+.next/
 
 # env / secrets
 .env
 .env.*
 *.local
+!.env.example
+!**/.env.example
 
 # will fill in with stack-specific ignores (node_modules, __pycache__, etc.)
 # once the tech stack is confirmed by the Plan Mode output

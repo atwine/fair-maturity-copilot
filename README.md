@@ -46,7 +46,20 @@ The engine boundary test (`tests/engine/test_boundary.py`) runs against a fake a
 
 ## Branching convention
 
-`main` is the stable branch. All work happens on a feature branch (`feature/<short-name>`), gets a self-review pass before merging, and merges into `main` locally. **Nothing is ever pushed to the GitHub remote without asking first** — an approved local merge is not the same as permission to push. See the user's global Claude Code conventions for the full policy this follows.
+Three long-lived branches, promotion in one direction only:
+
+```
+feature/<name>  →  development  →  staging  →  main
+ (isolated)          (integration)   (pre-prod)   (production)
+```
+
+- **All new work** happens on a `feature/<short-name>` branch, cut from `development`. Never commit directly to `development`, `staging`, or `main`.
+- **Feature → `development`**: gets a code-review pass on the diff first. Pushing the resulting `development` update to GitHub is never automatic — always confirmed before it happens, not reported after.
+- **`development` → `staging`**: same discipline — review, then confirm before pushing.
+- **`staging` → `main`**: only via a pull request, never a direct push. A second, independent review (Open Code Review delegate mode) runs on that PR before it goes up. Merging the PR requires explicit go-ahead — an open PR is not itself permission to merge.
+- `main` is production. It should only ever change via a reviewed, approved PR from `staging`.
+
+**One documented exception:** the first backend scaffold (engine + boundary test) was merged directly into `main` before this three-tier structure was set up, with explicit one-time approval to leave it as-is rather than rewrite already-pushed history. Every commit from that point forward follows the structure above. See `docs/DECISIONS.md` and `devlog/HANDOFF.md` for the full account.
 
 ## Repo layout
 

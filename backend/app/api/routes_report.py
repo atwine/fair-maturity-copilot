@@ -138,6 +138,7 @@ def _load_report_out(session: Session, run_id: UUID) -> ReportOut:
             indicator_id=f.indicator_id,
             title=indicators_by_id[f.indicator_id].title,
             severity=f.severity,
+            principle_group=indicators_by_id[f.indicator_id].principle_group,
             remediation_text=remediation_by_finding_id[f.id].remediation_text
             if f.id in remediation_by_finding_id
             else None,
@@ -197,5 +198,9 @@ def regenerate_finding(run_id: UUID, indicator_id: str, session: Session = Depen
     session.commit()
 
     return FindingOut(
-        indicator_id=indicator_id, title=indicator.title, severity=finding.severity, remediation_text=draft.remediation_text
+        indicator_id=indicator_id,
+        title=indicator.title,
+        severity=finding.severity,
+        principle_group=indicator.principle_group,
+        remediation_text=draft.remediation_text,
     )

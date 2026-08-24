@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/loading-state";
+import { FairSpectrum } from "@/components/fair-spectrum";
 import { api, ApiError } from "@/lib/api-client";
 import type { Assessment, AnswerOut, AnswerValue, Question } from "@/lib/types";
 
@@ -140,18 +140,21 @@ function QuestionForm({
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-6 py-10">
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
             Question {currentIndex + 1} of {questions.length}
           </span>
           <span className="truncate">{subjectLabel}</span>
         </div>
-        <Progress value={((currentIndex + 1) / questions.length) * 100} />
+        <FairSpectrum
+          principleGroups={questions.map((q) => q.principle_group)}
+          completedThrough={currentIndex}
+        />
       </div>
 
       <div className="space-y-3">
-        <h1 className="text-xl font-semibold text-balance">{question.plain_language_question}</h1>
+        <h1 className="font-heading text-2xl font-semibold text-balance">{question.plain_language_question}</h1>
         <button
           type="button"
           onClick={() => setShowHelp((s) => !s)}

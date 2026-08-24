@@ -9,12 +9,15 @@ export interface AnswerOption {
   label: string;
 }
 
+export type PrincipleGroup = "Findable" | "Accessible" | "Interoperable" | "Reusable";
+
 export interface Question {
   indicator_id: string;
   title: string;
   plain_language_question: string;
   help_text: string;
   priority: "essential" | "important" | "useful";
+  principle_group: PrincipleGroup;
   display_order: number;
   options: AnswerOption[];
 }
@@ -48,6 +51,7 @@ export interface Finding {
   indicator_id: string;
   title: string;
   severity: "pass" | "minor_gap" | "major_gap" | "unknown";
+  principle_group: PrincipleGroup;
   remediation_text: string | null;
 }
 

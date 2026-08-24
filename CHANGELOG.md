@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This pr
 ## [Unreleased]
 
 ### Added
+- Visual identity pass across all 4 frontend screens: a real palette (warm paper background, deep teal accent, muted gold, four distinct severity colors), Fraunces for headings paired with the existing Geist body font, and a persistent `SiteHeader` so every screen shares consistent chrome instead of floating alone in an unframed viewport.
+- `principle_group` field on `QuestionOut`/`FindingOut` (`backend/app/api/schemas.py`, `routes_questions.py`, `routes_report.py`) — exposes which FAIR principle (Findable/Accessible/Interoperable/Reusable) each indicator belongs to, needed for the new FAIR-spectrum tracker and per-finding chips below.
+- `frontend/components/fair-spectrum.tsx` — the pass's signature element: a segmented progress tracker sized proportionally to the real indicator counts per FAIR principle (4/3/1/4), replacing the generic linear `<Progress>` bar in the question wizard. Also exports `PrincipleChip`, a compact per-finding/per-question F/A/I/R badge used on the review and report screens.
+- Landing page (`app/page.tsx`) rebuilt with a hero treatment: the four FAIR letters as a colored device, a real headline, and a legend explaining what each letter stands for.
 - `frontend/components/loading-state.tsx` — a real spinner + message, replacing bare "Loading…" text on all three screens that fetch data (question wizard, review, report generation).
 - Next.js frontend (`frontend/`): the full 4-screen wizard (new assessment → question → review → report) against the backend API, built with Next.js 16 + React 19 + Tailwind v4 + shadcn/ui. `lib/api-client.ts` + `lib/types.ts` mirror the backend's REST contract.
 - `AssessmentOut.answers` field (`schemas.py`, `routes_assessment.py`) — needed so the frontend can pre-fill a previously-given answer when a user returns to edit it, not just know which indicators are answered.
@@ -22,6 +26,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This pr
 - FastAPI app skeleton (`backend/app/main.py`) with CORS wired for a future Next.js frontend.
 
 ### Fixed
+- `FairSpectrum`'s segment-fill math assumed each FAIR principle's questions occupy one contiguous block in display order. The real order isn't contiguous — the "flex slot" Findable indicator (F3) sits last, after all four Reusable questions — so the Findable segment showed 100% filled after just the first 4 questions were answered, then stayed stuck there for the rest of the wizard while the true last Findable question went unanswered. Caught in self-review before merging; fixed by counting each group's filled members directly by index rather than by cumulative offset.
 - **`globals.css`'s `--font-sans` was a circular self-reference** (`var(--font-sans)`), so it resolved to nothing and every page silently fell back to the browser's default serif (Times New Roman) instead of the Geist font actually loaded in `layout.tsx`. Found via a `design-critique` pass, not visible from the code alone — it read as a font *choice*, not a bug, until computed styles were checked directly.
 - Default/sm/lg button sizes computed to ~28-36px tall — under the 44px WCAG touch-target minimum, with sm's text at 12.8px. Bumped across the size scale (`components/ui/button.tsx`).
 - The selected-answer highlight in the question wizard was a single-pixel border-color change — too subtle to register at a glance. Now a 2px border plus a subtle fill tint and bold label on the selected option.

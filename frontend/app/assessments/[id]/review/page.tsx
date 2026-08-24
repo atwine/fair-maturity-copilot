@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/loading-state";
+import { PrincipleChip } from "@/components/fair-spectrum";
 import { api, ApiError } from "@/lib/api-client";
 import type { Assessment, Question } from "@/lib/types";
 
@@ -72,20 +73,23 @@ export default function ReviewPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-6 py-10">
       <div className="space-y-1">
-        <h1 className="text-xl font-semibold">Review your answers</h1>
+        <h1 className="font-heading text-2xl font-semibold">Review your answers</h1>
         <p className="text-sm text-muted-foreground">{assessment.subject_label}</p>
       </div>
 
-      <ul className="divide-y rounded-md border">
+      <ul className="divide-y rounded-md border bg-card">
         {questions.map((q) => {
           const answer = answersByIndicator.get(q.indicator_id);
           return (
             <li key={q.indicator_id} className="flex items-center justify-between gap-4 p-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{q.title}</p>
-                <p className="truncate text-sm text-muted-foreground">
-                  {answer ? answer.label : "Not answered yet"}
-                </p>
+              <div className="flex min-w-0 items-center gap-3">
+                <PrincipleChip group={q.principle_group} />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{q.title}</p>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {answer ? answer.label : "Not answered yet"}
+                  </p>
+                </div>
               </div>
               <Button
                 variant="outline"

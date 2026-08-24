@@ -83,3 +83,21 @@ Running context for any agent (Claude, Devin, or a fresh session of either) pick
 **What's next:** Checkpoint 3 (synthetic demo datasets) or Checkpoint 4 (backend REST API) — see `ROADMAP.md`. This work is sitting on `feature/fair-indicators`, not yet merged into `development` — needs a self-review confirmation and a "push development" go-ahead like last time before it lands there.
 
 **Open questions carried forward:** Neon Postgres still not provisioned (seed script only smoke-tested against SQLite so far — Postgres-specific behavior, e.g. the JSON column type, isn't proven yet). Promotion cadence for development→staging→main still unconfirmed by the user.
+
+---
+
+## 2026-08-24 — Checkpoint 3: synthetic demo datasets, LLM default switched to vLLM
+
+**What exists now:** `backend/fixtures/synthetic_datasets.py` (4 fake dataset profiles), `backend/app/adapters/fair/prompt.py` + `prompts/remediation.jinja` (pulled forward from a later checkpoint — a real demo needed real remediation text), `scripts/run_demo_assessment.py` (runs every fixture through the full engine + a live LLM, writes `docs/demo_reports/<slug>.md`). Full suite: `pytest tests/` → 14 passed. Generated reports for all 4 datasets are committed at `docs/demo_reports/`.
+
+**What was decided — read this one, it reverses something the approved plan assumed:**
+- The plan's dev-LLM choice (local Ollama, for fast iteration without tying up the shared A100s) was tested against reality and was wrong: the first demo run against Ollama didn't finish one dataset in 5 minutes. The user pointed out vLLM is faster in practice on this hardware and is the only endpoint that matters once this actually runs at ACE. **LLM default is now vLLM everywhere** (`app/config.py`, `.env.example`, `README.md`) — Ollama is an offline fallback only, not the routine dev path. Re-run against vLLM: all 4 datasets, ~150 seconds total, no failures.
+- `app/config.py`'s `database_url` was made optional (defaults to a local SQLite file) — it was a required field with no default, which meant even scripts that never touch the database (like the demo runner) couldn't import `app.config` without a Postgres/Neon URL configured. Real environments still set `DATABASE_URL` in `.env`.
+
+**Bugs found this session** (the first two matter for anyone touching remediation quality later):
+1. The remediation grounding check rejected a correct, appropriate response for a `dont_know` answer with a thin note ("This has never come up") — flagged as "no overlap with the user's actual answer/note" even though the prompt design deliberately asks for generic "who to ask" guidance in that case, which naturally won't share words with a near-empty note. Found live against real vLLM output, not by review. Fixed: `dont_know` answers now bypass the overlap check; regression test in `tests/engine/test_remediation.py`.
+2. (Self-review) `scripts/run_demo_assessment.py`'s docstring still said the tool defaults to Ollama, written before the switch above. Fixed to match.
+
+**What's next:** Checkpoint 4 (backend REST API) — see `ROADMAP.md`. This work is sitting on `feature/synthetic-demo-datasets`, not yet merged into `development`.
+
+**Open questions carried forward:** Neon Postgres still not provisioned. Promotion cadence for development→staging→main still unconfirmed. Worth reading a couple of the generated `docs/demo_reports/*.md` files directly if picking this up cold — they're the clearest evidence of what the pipeline actually produces right now.

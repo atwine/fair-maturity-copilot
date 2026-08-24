@@ -8,16 +8,14 @@ This project is one reusable engine (`intake → scoring → LLM remediation wri
 
 Guided self-assessment against a subset of the RDA's 41 FAIR indicators, with LLM-generated plain-language remediation for each weak indicator.
 
-- [x] **Checkpoint 1 — engine scaffold + boundary proof.** FastAPI app, SQLModel data model, the `Adapter` Protocol seam, dual-provider (Ollama/vLLM) LLM client, remediation grounding checks. Proven with a fake adapter before any FAIR content exists (`backend/tests/engine/test_boundary.py`, passing).
+- [x] **Checkpoint 1 — engine scaffold + boundary proof.** FastAPI app, SQLModel data model, the `Adapter` Protocol seam, an OpenAI-compatible LLM client, remediation grounding checks. Proven with a fake adapter before any FAIR content exists (`backend/tests/engine/test_boundary.py`, passing).
 - [x] **Checkpoint 2 — FAIR adapter content.** `indicators.yaml` (the 12 selected RDA indicators, flex-slot resolved to F3-01M — see `docs/DECISIONS.md`), `FairAdapter.score()`, `scripts/seed_indicators.py`. Tested against SQLite (no Neon project yet) — seed script confirmed idempotent on a second run.
-- [ ] **Checkpoint 3 — synthetic demo dataset(s).** A small library of fake, realistic "datasets being assessed" — varied sizes/formats/domains — so the tool can be demoed and dogfooded end-to-end without waiting on real ACE data, and without ever needing to run real institutional data through an LLM before that's actually been cleared. See the note below — this matters even more once the OMOP adapter exists.
+- [x] **Checkpoint 3 — synthetic demo dataset(s) + remediation writer live.** 4 fake dataset profiles (`backend/fixtures/synthetic_datasets.py`) varying in size/format/domain and FAIR maturity, run end-to-end through the real engine and a real LLM via `scripts/run_demo_assessment.py`. Pulled the remediation prompt template forward from its original later slot, since a real demo needed real remediation text — see `backend/app/adapters/fair/prompts/remediation.jinja`. Full reports in `docs/demo_reports/`. Scores ranged 6.2–68.8/100, proving the tool's actual range, not just one score. **LLM default switched from local Ollama to vLLM** after this run — Ollama was far slower in practice on this hardware, and vLLM is dedicated A100 infra and the actual production target anyway; Ollama stays as an offline fallback only.
 - [ ] **Checkpoint 4 — backend REST API.** Assessment/question/answer/report routes, CORS, exercised manually before any frontend exists.
 - [ ] **Checkpoint 5 — Next.js frontend.** Scaffold, shadcn setup, the 4-screen wizard (new → question → review → report) against the API contract.
-- [ ] **Checkpoint 6 — remediation writer live.** Prompt template wired to the engine, hand-reviewed output against the Ollama dev endpoint, tested against the synthetic datasets from Checkpoint 3.
-- [ ] **Checkpoint 7 — eval harness.** Golden-set regression suite; prompt iterated until it passes.
-- [ ] **Checkpoint 8 — switch to pilot LLM.** Point at the vLLM Llama 3.3 70B endpoint, confirm eval scores hold.
-- [ ] **Checkpoint 9 — deploy + dogfood.** Both services on Railway; a full self-run against real ACE data.
-- [ ] **Checkpoint 10 — real ACE pilot.** A non-developer stakeholder runs it unassisted; feedback becomes new golden-set cases and indicator-subset corrections.
+- [ ] **Checkpoint 6 — eval harness.** `golden_set.yaml` + automated LLM-judge scoring, formalizing what the Checkpoint 3 demo run validated informally. Prompt iterated until it passes.
+- [ ] **Checkpoint 7 — deploy + dogfood.** Both services on Railway; a full self-run against real ACE data.
+- [ ] **Checkpoint 8 — real ACE pilot.** A non-developer stakeholder runs it unassisted; feedback becomes new golden-set cases and indicator-subset corrections.
 
 First pilot user: ACE's own data practices. No external dependency — already underway.
 

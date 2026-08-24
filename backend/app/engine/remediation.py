@@ -22,6 +22,14 @@ def _grounding_ok(text: str, answer: Answer) -> tuple[bool, str | None]:
         return False, f"word count {word_count} outside {_WORD_COUNT_RANGE}"
     if _BANNED_TERMS.search(text):
         return False, "contains banned jargon (FAIR principle / RDA code)"
+
+    # "I don't know" answers deliberately get generic "who to ask / where to
+    # check" guidance (see prompts/remediation.jinja) rather than a fix tied
+    # to specifics of what's often a thin or empty note — requiring overlap
+    # here would penalize the model for following that instruction correctly.
+    if answer.is_dont_know:
+        return True, None
+
     # Reference-grounding: the output should overlap with something the user
     # actually said, or it could have been written with zero knowledge of
     # their specific situation.

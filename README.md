@@ -4,7 +4,7 @@ A guided, plain-language FAIR data-maturity assessment tool for research organiz
 
 ## Status
 
-**In progress.** The backend engine is scaffolded and tested, and the FAIR adapter's content (12 indicators, scoring, seed script) is built and tested. Synthetic demo data, the remediation-writer prompt, the REST API, and the Next.js frontend are next. See [`ROADMAP.md`](ROADMAP.md) for current checkpoint status and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
+**In progress.** The backend engine, FAIR adapter content, and remediation-writer prompt are all built and tested — including a full end-to-end demo run against 4 synthetic datasets and a live LLM (see [`docs/demo_reports/`](docs/demo_reports/)). The REST API and the Next.js frontend are next. See [`ROADMAP.md`](ROADMAP.md) for current checkpoint status and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
 
 ## The problem
 
@@ -30,7 +30,7 @@ Built by [ACE](https://ace.ac.ug) (Africa Center of Excellence in Bioinformatics
 
 - **Backend**: FastAPI + SQLModel + Alembic, Postgres (Neon)
 - **Frontend**: Next.js + React + TypeScript + Tailwind + shadcn/ui (not yet scaffolded)
-- **LLM**: OpenAI-compatible client against two on-prem endpoints — local Ollama for dev iteration, a vLLM-hosted Llama 3.3 70B (AWQ INT4) for pilot-facing generations. Provider is a config swap (`backend/.env`), never a code change.
+- **LLM**: OpenAI-compatible client against on-prem vLLM (Llama 3.3 70B, AWQ INT4) — the default for both dev and pilot, since it's dedicated A100 infra and the actual production target. Local Ollama is kept as an offline fallback only, not routine dev — it was tried first but is slower in practice on this hardware. Provider is a config swap (`backend/.env`), never a code change.
 
 ## Getting started (backend)
 
@@ -68,13 +68,16 @@ feature/<name>  →  development  →  staging  →  main
 backend/
   app/
     engine/            — standard-agnostic core (models, scoring, remediation, LLM client)
-    adapters/fair/      — FAIR-specific indicators.yaml, adapter, scoring rubric (populated; prompts/ next)
+    adapters/fair/      — FAIR-specific indicators.yaml, adapter, scoring rubric, remediation prompt
     api/                — REST routes (not yet built)
-  tests/engine/         — proves the engine/adapter boundary against a fake adapter
+  fixtures/             — synthetic demo dataset profiles (no real ACE/TASO data touches an LLM)
+  scripts/               — seed_indicators.py, run_demo_assessment.py
+  tests/                 — engine boundary, FAIR adapter, remediation grounding, fixture checks
   .env.example          — required env vars, including both LLM provider presets
 docs/
   PLANNING_PROMPT.md    — the Plan Mode prompt that produced the v0 build plan
   DECISIONS.md          — why this project, and not the nine other ideas we scoped first
+  demo_reports/          — generated output from scripts/run_demo_assessment.py — what the tool actually produces
   background/           — the earlier idea-scoping reports (v1-v3)
 devlog/
   HANDOFF.md            — running session log, written so any agent (Claude, Devin) can resume cold

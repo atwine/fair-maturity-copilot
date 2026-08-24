@@ -24,3 +24,28 @@ Running context for any agent (Claude, Devin, or a fresh session of either) pick
 - Whether the remediation-writer LLM step should default to the local Llama 3.3 70B or a smaller/hosted model during development is still open.
 
 **How to update this file:** append a new `## YYYY-MM-DD — short summary` section at the bottom each session. Include: what changed, what was decided and why, what's next, and any open question a fresh agent would otherwise have to rediscover by reading the whole codebase.
+
+---
+
+## 2026-08-24 — Plan Mode run, backend engine scaffolded and tested, branching fixed
+
+**What exists now:**
+- The v0 implementation plan was produced via Plan Mode from `docs/PLANNING_PROMPT.md` and approved. It is not duplicated in this repo — find it wherever this session's Claude Code plan files live (referenced as `let-s-open-plan-mode-silly-lynx.md` at plan-approval time); `ROADMAP.md`'s checkpoints are the living summary of it.
+- Backend engine scaffold exists and is tested: `backend/app/engine/` (data model, `Adapter` Protocol, scoring, remediation-writer with grounding checks, LLM client), `backend/app/main.py` (FastAPI + CORS), `backend/tests/engine/test_boundary.py` (passes — proves the engine/adapter boundary against a fake adapter, before any FAIR content exists).
+- **Nothing in `backend/app/adapters/fair/` yet** — that's Checkpoint 2, next.
+- No frontend yet (Next.js confirmed as the choice, not scaffolded).
+- No database provisioned yet — `DATABASE_URL` in `.env` is still a placeholder; Neon project needs creating before any DB-touching code can run.
+
+**What was decided, and why:**
+- **LLM serving**: dual on-prem OpenAI-compatible providers, both verified live during planning — local Ollama (`http://localhost:11434/v1`, models `llama3.1:8b`/`gemma3:4b`) for dev, vLLM (`http://10.35.50.41:8000/v1`, `ibnzterrell/Meta-Llama-3.3-70B-Instruct-AWQ-INT4`, 131k context) for pilot. No third-party hosted API involved at all — simpler than the plan's original draft, and nothing leaves the local network.
+- **Frontend**: Next.js from the start (not the plan's own recommendation of server-rendered Jinja2+htmx) — explicit user call, matches their default stack. Realistic v0 timeline estimate moved from ~2 weeks to ~3 weeks of *developer-days* accordingly — see the next point for why that day-based estimate itself was replaced.
+- **Timelines**: the plan's day-based milestones assumed unassisted solo development. Actual pace with Claude doing the implementation is much faster — Checkpoint 1 (all of "Days 1-2" in the original plan) took a fraction of one session. `ROADMAP.md` now tracks **checkpoints**, not calendar days.
+- **Branching**: caught mid-session that work was being committed straight to a shared branch (`master`), against the user's standing CLAUDE.md convention. Fixed: renamed `master` → `main`, moved the in-progress backend work to `feature/v0-backend-scaffold`, ran a self-review pass (`code-review` skill, low effort) on the diff before merge — found and fixed one real bug (a regex missing a word-boundary, in the jargon filter in `remediation.py`) — then merged to `main`. **Going forward: every unit of work gets its own feature branch, gets self-reviewed before merging to `main`, and nothing is ever pushed to the GitHub remote without asking first, even after a local merge is approved.**
+- **GitHub repo**: did not exist yet as of this session's start; created as **private** during this session (see repo settings — not duplicated here since it can change).
+
+**What's next:** Checkpoint 2 — author `backend/app/adapters/fair/indicators.yaml` (the 12 selected RDA indicators from the plan), implement `adapter.py`'s `score()`, wire the seed script. This is the highest-leverage single artifact in the whole build per the plan — get the questions and rubric right here before anything downstream depends on them. Then Checkpoint 3 (new, added mid-session): build a small library of synthetic demo datasets (varied sizes/formats) — see `ROADMAP.md` for why this was moved early rather than left until the end. The underlying concern: real ACE/TASO data, especially anything OMOP/health-record-shaped, likely needs a cleared data-governance path before it can touch any LLM at all, on-prem or not — synthetic data sidesteps that question entirely for demo/dev purposes.
+
+**Open questions carried forward:**
+- Neon Postgres project still needs provisioning — nothing DB-backed can be tested until `DATABASE_URL` is real.
+- The 12th indicator (the "flex slot" between F3-01M and I3-01M in the plan) is still undecided — deferred to post-pilot feedback per the plan.
+- License for the repo is still undecided (repo itself is now created, but private — see README).

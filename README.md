@@ -4,7 +4,7 @@ A guided, plain-language FAIR data-maturity assessment tool for research organiz
 
 ## Status
 
-**Planning.** No implementation yet. See [`docs/PLANNING_PROMPT.md`](docs/PLANNING_PROMPT.md) — that prompt is meant to be run through Claude's Plan Mode to produce the actual build plan.
+**In progress.** The backend engine is scaffolded and its core boundary is tested; the FAIR-specific content (indicators, prompts, API routes) and the Next.js frontend are next. See [`ROADMAP.md`](ROADMAP.md) for current checkpoint status and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
 
 ## The problem
 
@@ -20,24 +20,54 @@ Built as a reusable **engine + adapter** pattern, not a one-off script:
 intake (structured findings) → scoring → LLM remediation writer → plain-language report
 ```
 
-The FAIR indicator set and scoring rubric live in their own adapter module. A second adapter — applying the same engine to OHDSI's OMOP CDM Data Quality Dashboard output — is planned as a follow-on project once real OMOP CDM data is available to test against. See [`ROADMAP.md`](ROADMAP.md).
+The FAIR indicator set and scoring rubric live in their own adapter module (`backend/app/adapters/fair/`). Nothing in `backend/app/engine/` may reference "FAIR" by name — that boundary is what lets a second adapter, applying the same engine to OHDSI's OMOP CDM Data Quality Dashboard output, plug in later without a rewrite. See [`ROADMAP.md`](ROADMAP.md).
 
 ## Why this exists
 
 Built by [ACE](https://ace.ac.ug) (Africa Center of Excellence in Bioinformatics & Data Science, Kampala, Uganda) — first pilot user is ACE itself, self-assessing its own data governance practices.
 
+## Tech stack
+
+- **Backend**: FastAPI + SQLModel + Alembic, Postgres (Neon)
+- **Frontend**: Next.js + React + TypeScript + Tailwind + shadcn/ui (not yet scaffolded)
+- **LLM**: OpenAI-compatible client against two on-prem endpoints — local Ollama for dev iteration, a vLLM-hosted Llama 3.3 70B (AWQ INT4) for pilot-facing generations. Provider is a config swap (`backend/.env`), never a code change.
+
+## Getting started (backend)
+
+```bash
+cd backend
+python -m venv .venv
+./.venv/Scripts/python.exe -m pip install -e ".[dev]"   # Windows; drop the .exe path prefix on macOS/Linux
+cp .env.example .env   # then fill in DATABASE_URL (see the file for a free Neon setup)
+./.venv/Scripts/python.exe -m pytest tests/engine -v
+```
+
+The engine boundary test (`tests/engine/test_boundary.py`) runs against a fake adapter and needs no database or LLM connection — it's the fastest way to confirm the setup works.
+
+## Branching convention
+
+`main` is the stable branch. All work happens on a feature branch (`feature/<short-name>`), gets a self-review pass before merging, and merges into `main` locally. **Nothing is ever pushed to the GitHub remote without asking first** — an approved local merge is not the same as permission to push. See the user's global Claude Code conventions for the full policy this follows.
+
 ## Repo layout
 
 ```
+backend/
+  app/
+    engine/            — standard-agnostic core (models, scoring, remediation, LLM client)
+    adapters/fair/      — FAIR-specific indicators/prompts (content, not yet populated)
+    api/                — REST routes (not yet built)
+  tests/engine/         — proves the engine/adapter boundary against a fake adapter
+  .env.example          — required env vars, including both LLM provider presets
 docs/
-  PLANNING_PROMPT.md   — the Plan Mode prompt that produced (or will produce) the build plan
-  DECISIONS.md         — why this project, and not the nine other ideas we scoped first
-  background/          — the earlier idea-scoping reports (v1-v3)
+  PLANNING_PROMPT.md    — the Plan Mode prompt that produced the v0 build plan
+  DECISIONS.md          — why this project, and not the nine other ideas we scoped first
+  background/           — the earlier idea-scoping reports (v1-v3)
 devlog/
-  HANDOFF.md           — running context log, written so any agent (Claude, Devin) can resume cold
-ROADMAP.md             — what's built, what's next, what's tracked-but-parked
+  HANDOFF.md            — running session log, written so any agent (Claude, Devin) can resume cold
+ROADMAP.md              — what's built, what's next, what's tracked-but-parked
+CHANGELOG.md            — dated record of what shipped
 ```
 
 ## License
 
-Not yet decided — public/private status and license are open questions, to be settled once the v0 plan exists.
+Not yet decided. Repo is **private** for now — may open-source later once v0 is working.

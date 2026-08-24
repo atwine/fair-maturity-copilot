@@ -5,14 +5,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
 from app.adapters.registry import get_adapter
-from app.api.schemas import AssessmentOut, CreateAssessmentRequest
+from app.api.schemas import AnswerOut, AssessmentOut, CreateAssessmentRequest
 from app.db import get_session
 from app.engine.models import Answer, AssessmentRun
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
 
 
-def _to_out(run: AssessmentRun, answered_indicator_ids: list[str]) -> AssessmentOut:
+def _to_out(run: AssessmentRun, answers: list[Answer]) -> AssessmentOut:
+    sorted_answers = sorted(answers, key=lambda a: a.indicator_id)
     return AssessmentOut(
         id=run.id,
         adapter_id=run.adapter_id,
@@ -20,7 +21,17 @@ def _to_out(run: AssessmentRun, answered_indicator_ids: list[str]) -> Assessment
         status=run.status,
         created_at=run.created_at,
         completed_at=run.completed_at,
-        answered_indicator_ids=answered_indicator_ids,
+        answered_indicator_ids=[a.indicator_id for a in sorted_answers],
+        answers=[
+            AnswerOut(
+                indicator_id=a.indicator_id,
+                value=a.raw_answer.get("value", ""),
+                label=a.raw_answer.get("label", ""),
+                note=a.free_text_note,
+                is_dont_know=a.is_dont_know,
+            )
+            for a in sorted_answers
+        ],
     )
 
 
@@ -49,7 +60,7 @@ def get_assessment(run_id: UUID, session: Session = Depends(get_session)) -> Ass
         raise HTTPException(status_code=404, detail="Assessment not found")
 
     answers = session.exec(select(Answer).where(Answer.run_id == run_id)).all()
-    return _to_out(run, [a.indicator_id for a in answers])
+    return _to_out(run, answers)
 
 
 @router.post("/{run_id}/complete", response_model=AssessmentOut)
@@ -74,4 +85,4 @@ def complete_assessment(run_id: UUID, session: Session = Depends(get_session)) -
     session.add(run)
     session.commit()
     session.refresh(run)
-    return _to_out(run, sorted(answered_ids))
+    return _to_out(run, answers)

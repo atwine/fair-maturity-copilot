@@ -127,3 +127,28 @@ Running context for any agent (Claude, Devin, or a fresh session of either) pick
 **Not yet done:** the `staging` → `main` step, which per `README.md`'s branching convention requires a PR (not a direct push), a second independent review via Open Code Review delegate mode, and the user's explicit go-ahead to merge. That's a separate, later step — not implied by this promotion.
 
 **What's next:** Checkpoint 5 (Next.js frontend), continuing on `development` via a fresh feature branch — promoting to `staging` doesn't change where new work branches from.
+
+---
+
+## 2026-08-24 — Checkpoint 5: Next.js frontend, and a real production bug found by testing it live
+
+**What exists now:** `frontend/` — full Next.js 16 + React 19 + Tailwind v4 + shadcn/ui (Base UI) scaffold, the 4-screen wizard wired to the backend via `lib/api-client.ts`. Walked the entire flow twice in a real browser via the Claude in Chrome extension (per standing instruction to verify UI changes live, not just via automated tests) — first run surfaced a real bug (below), second run confirmed the fix. `pytest tests/` → 33 passed (backend); frontend `tsc --noEmit` and `eslint` both clean.
+
+**The bug, and why it matters for whoever picks this up next:** the completed report showed "8 of 24 indicators have something worth fixing" on a 12-indicator assessment, with every finding duplicated, plus React "duplicate key" console warnings. Root cause: `GET /assessments/{id}/report` had no protection against being called twice concurrently for the same run — React 19 Strict Mode's double effect invocation in dev triggered it reliably, but the same failure mode is reachable in production via a double-click or a page refresh mid-generation. Two concurrent calls both saw "not generated yet" and both ran a full LLM generation pass.
+
+**Fixed at the database level:** unique constraints added — `Answer` and `Finding` on `(run_id, indicator_id)`, `Report` on `run_id` (`engine/models.py`). The losing concurrent request now catches the constraint violation and **waits** (polls up to 90s) for the winner's row to actually commit, rather than erroring immediately — the first fix attempt got this wrong, returning an error the instant it saw the conflict, which is well before the winner (still mid-LLM-call) has finished. `routes_answers.py`'s answer-upsert had the identical unprotected pattern and got the same defensive fix pre-emptively, before it could cause the same class of bug.
+
+**How this was actually verified, not just asserted fixed:**
+1. A direct-function test firing two threads at `_generate_report` against a shared SQLite engine — passed immediately (too fast to catch the real bug, see #2).
+2. A real concurrent-HTTP test via `ThreadPoolExecutor` against a running uvicorn instance — this is what actually reproduced the "loser gives up too early" failure mode before the wait-and-retry fix, and confirmed it after (`tests/api/test_report_live.py::test_concurrent_report_generation_does_not_duplicate_rows`).
+3. A clean re-run of the full flow in the real browser afterward — correct "1 of 12," no duplicate findings, no console warnings, confirmed directly against the SQLite file (1 `Report` row, 12 `Finding` rows).
+
+**Other things worth knowing if touching this area again:**
+- shadcn now generates Base UI components, not Radix — `asChild` doesn't exist; use `render={<Element />}` plus `nativeButton={false}` when rendering a `Button` as something other than a real `<button>` (an anchor via `next/link`, for instance). Base UI logs a clear console warning if you get this wrong; that's how it was caught here.
+- Next.js dynamic route pages now receive `params` as a `Promise` — must `await params`. `next dev` auto-generates `frontend/AGENTS.md` warning about exactly this kind of drift from older training data; worth actually reading it, not just noting it exists.
+- Local component state that should reset when a route param changes (the question wizard's per-question form state) is reset by remounting via `key={indicatorId}`, not by syncing through a `useEffect` — the latter is exactly what ESLint's `react-hooks/set-state-in-effect` rule now flags.
+- `_load_report_out` also got a fix in the same pass: it picked an arbitrary `RemediationDraft` per finding when more than one existed (after a regenerate call) — now explicitly ordered by `generated_at` so the latest one always wins.
+
+**What's next:** Checkpoint 6 (eval harness) or Checkpoint 7 (deploy) — see `ROADMAP.md`. This work is sitting on `feature/nextjs-frontend`, not yet merged into `development`.
+
+**Open questions carried forward:** Neon Postgres still not provisioned. Promotion cadence for development→staging→main still unconfirmed. Both local dev servers (backend on :8000, frontend on :3000) were left running in this session's background — a fresh session should check whether they're still up before starting new ones.

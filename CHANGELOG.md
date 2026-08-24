@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This pr
 ## [Unreleased]
 
 ### Added
+- Next.js frontend (`frontend/`): the full 4-screen wizard (new assessment → question → review → report) against the backend API, built with Next.js 16 + React 19 + Tailwind v4 + shadcn/ui. `lib/api-client.ts` + `lib/types.ts` mirror the backend's REST contract.
+- `AssessmentOut.answers` field (`schemas.py`, `routes_assessment.py`) — needed so the frontend can pre-fill a previously-given answer when a user returns to edit it, not just know which indicators are answered.
 - Backend REST API (`backend/app/api/`): create/get an assessment, submit answers, complete a run, generate a report (cached — one LLM pass per run, not per view), and regenerate a single finding's remediation. `app/adapters/registry.py` added as the composition root mapping `adapter_id` to a concrete adapter, so the API never imports FAIR-specific code directly.
 - `Adapter` Protocol (`engine/ports.py`) extended with `render_remediation_prompt` and `prompt_version`, implemented by `FairAdapter` — this is what makes the API/report-generation path genuinely standard-agnostic, not just in theory.
 - Full API test suite (`backend/tests/api/`): fast tests for every route's validation/error paths, plus a live suite hitting real vLLM for report generation, caching behavior, and the regenerate endpoint.
@@ -19,6 +21,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This pr
 - FastAPI app skeleton (`backend/app/main.py`) with CORS wired for a future Next.js frontend.
 
 ### Fixed
+- **Report-generation race condition** — two concurrent `GET /report` calls for the same run (surfaced by React 19 Strict Mode's double effect invocation, but reproducible by any double-click or refresh mid-generation) each ran a full LLM generation pass, producing duplicate `Report`/`Finding` rows. Fixed with database-level unique constraints (`Answer`/`Finding` on `(run_id, indicator_id)`, `Report` on `run_id`) plus a wait-and-retry path so the losing request returns the winner's result instead of erroring or duplicating. `routes_answers.py`'s answer upsert had the same unprotected check-then-insert pattern and got the same fix pre-emptively. Verified with a real concurrent-HTTP regression test, not just sequential calls. See `docs/DECISIONS.md`.
+- `_load_report_out` picked an arbitrary `RemediationDraft` per finding with no defined order when more than one existed (e.g. after a regenerate call) — could silently show a stale suggestion instead of the latest. Now explicitly ordered by `generated_at`.
 - Banned-jargon regex in the remediation grounding check (`backend/app/engine/remediation.py`) was missing a word-boundary on its RDA-code branch, which could reject valid remediation text that merely contained an RDA-code-like substring inside a longer word. Caught in review before merging to `main`.
 - `indicators.yaml`'s unquoted `yes`/`no` keys and values were silently parsed as Python booleans by PyYAML (the classic YAML 1.1 "Norway problem"), breaking every scoring lookup. Caught by actually running the tests, not by review.
 - `scripts/seed_indicators.py` raised `DetachedInstanceError` when logging its success message, from reading an ORM attribute after the database session that loaded it had already closed.

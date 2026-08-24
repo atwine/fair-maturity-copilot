@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { LoadingState } from "@/components/loading-state";
 import { api, ApiError } from "@/lib/api-client";
 import type { Assessment, AnswerOut, AnswerValue, Question } from "@/lib/types";
 
@@ -48,7 +49,7 @@ export default function QuestionPage() {
     return <ErrorState message={loadError} />;
   }
   if (!questions || !assessment) {
-    return <CenteredMessage>Loading…</CenteredMessage>;
+    return <LoadingState title="Loading this assessment…" />;
   }
 
   const currentIndex = questions.findIndex((q) => q.indicator_id === indicatorId);
@@ -168,7 +169,7 @@ function QuestionForm({
           <Label
             key={option.value}
             htmlFor={option.value}
-            className="flex cursor-pointer items-center gap-3 rounded-md border p-3 text-sm has-[[data-checked]]:border-primary"
+            className="flex cursor-pointer items-center gap-3 rounded-md border-2 border-border p-3 text-sm transition-colors has-[[data-checked]]:border-primary has-[[data-checked]]:bg-primary/5 has-[[data-checked]]:font-medium"
           >
             <RadioGroupItem value={option.value} id={option.value} />
             {option.label}
@@ -193,10 +194,6 @@ function QuestionForm({
       </div>
     </main>
   );
-}
-
-function CenteredMessage({ children }: { children: React.ReactNode }) {
-  return <main className="flex flex-1 items-center justify-center text-muted-foreground">{children}</main>;
 }
 
 function ErrorState({ message }: { message: string }) {

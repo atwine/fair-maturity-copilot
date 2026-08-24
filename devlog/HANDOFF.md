@@ -152,3 +152,24 @@ Running context for any agent (Claude, Devin, or a fresh session of either) pick
 **What's next:** Checkpoint 6 (eval harness) or Checkpoint 7 (deploy) — see `ROADMAP.md`. This work is sitting on `feature/nextjs-frontend`, not yet merged into `development`.
 
 **Open questions carried forward:** Neon Postgres still not provisioned. Promotion cadence for development→staging→main still unconfirmed. Both local dev servers (backend on :8000, frontend on :3000) were left running in this session's background — a fresh session should check whether they're still up before starting new ones.
+
+---
+
+## 2026-08-24 — design-critique pass: a font that was never rendering, and 3 other mechanical fixes
+
+**Why this happened now:** user asked directly which upcoming checkpoint covers visual design. Answer: none of them (6/7/8 are eval harness/deploy/pilot). Ran `design-critique` against all 4 live screens rather than let that gap ride further.
+
+**The headline finding:** `frontend/app/globals.css` had `--font-sans: var(--font-sans)` — a circular self-reference from the shadcn scaffold that never got corrected to `var(--font-geist-sans)` (the variable `layout.tsx` actually sets via `next/font/google`). It resolved to nothing, so the whole app was silently rendering in the browser's default serif (confirmed via `getComputedStyle(document.body).fontFamily` → `"Times New Roman"`). This is exactly the kind of bug a design-critique catches that a code review doesn't — nothing errors, nothing fails a type check, it just silently isn't doing what the surrounding code clearly intends. Fixed; confirmed via computed styles afterward that Geist actually renders now.
+
+**Other fixes from the same pass, all mechanical (an objectively correct answer, not a taste call):**
+- Button sizes (`components/ui/button.tsx`) computed to ~28-36px — under the 44px WCAG touch-target minimum, with `sm` text at 12.8px. Bumped the whole size scale (`default` → 44px, `sm` → 40px, `lg` → 48px).
+- All three data-fetching loading states were bare "Loading…"/"Generating…" text. Added `frontend/components/loading-state.tsx` (spinner + message) and used it consistently across the question wizard, review, and report pages.
+- The selected-answer highlight in the question wizard was a single-pixel border-color change, too subtle to register — now a 2px border plus a fill tint plus bold label on the selected option.
+
+**Deliberately not done in this pass:** the critique's other findings — no accent color anywhere (pure grayscale palette), inconsistent `Card` usage across screens, weak visual hierarchy on the report's score — are design judgment calls, not correctness fixes, and weren't decided unilaterally. User's own CLAUDE.md names `frontend-design` as the right skill for exactly this kind of call; that's the next step, not yet started.
+
+**Verified:** `tsc --noEmit` and `eslint` both clean; re-walked all 4 screens live in the browser (Claude in Chrome extension) after the fixes, confirmed Geist font actually renders, button sizes visibly larger, selected-answer state clearly legible. Self-reviewed the diff (`code-review` skill) before merge — no findings, this was a small, mechanical, CSS/component-only change with no logic to get wrong.
+
+**What's next:** either the `frontend-design` visual-identity pass (accent color, real type scale, layout consistency), or resume the roadmap at Checkpoint 6/7. This work is sitting on `feature/design-critique-fixes`, not yet merged into `development`.
+
+**Open questions carried forward:** same as previous entry — Neon still not provisioned, promotion cadence unconfirmed, both dev servers still running in background from earlier in this session.

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoadingState } from "@/components/loading-state";
 import { api, ApiError } from "@/lib/api-client";
 import type { Finding, Report } from "@/lib/types";
 
@@ -80,10 +81,10 @@ export default function ReportPage() {
 
   if (!report) {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center text-muted-foreground">
-        <p>Generating your report…</p>
-        <p className="text-sm">Writing plain-language guidance for each gap can take a minute.</p>
-      </main>
+      <LoadingState
+        title="Generating your report…"
+        subtitle="Writing plain-language guidance for each gap can take a minute."
+      />
     );
   }
 

@@ -49,3 +49,19 @@ Running context for any agent (Claude, Devin, or a fresh session of either) pick
 - Neon Postgres project still needs provisioning — nothing DB-backed can be tested until `DATABASE_URL` is real.
 - The 12th indicator (the "flex slot" between F3-01M and I3-01M in the plan) is still undecided — deferred to post-pilot feedback per the plan.
 - License for the repo is still undecided (repo itself is now created, but private — see README).
+
+---
+
+## 2026-08-24 — branching corrected to the full three-tier structure
+
+**Correction to the previous entry's "Branching" note above:** that entry described feature-branch-to-`main` as the fixed process. It wasn't the full fix — the user's CLAUDE.md specifies a **three-tier** promotion path (isolated feature branch → shared/staging → production), and merging straight into `main` skipped the staging tier and the PR-gated production step entirely. Caught when the user asked directly why the branch split hadn't happened.
+
+**What was decided:**
+- Real structure, per explicit instruction, matching the user's CLAUDE.md literally: `feature/<name>` → `development` → `staging` → `main`, one direction only. Feature branches never commit to any of the three shared branches directly. `development`→`staging` and `staging`→`main` each get a review pass; pushing `development` or `staging` to GitHub is never automatic, always confirmed first; `main` is reachable **only** via a PR from `staging`, preceded by a second independent review (Open Code Review delegate mode), merged only on explicit go-ahead. See `README.md`'s "Branching convention" for the canonical description — that's the source of truth, not this log.
+- **One-time exception, explicitly approved by the user:** the backend scaffold that had already been merged straight into `main` (previous entry) stays there rather than being fixed via a history rewrite/force-push, since nothing is deployed yet and the user gave blanket approval for that specific batch. Every commit from this point forward goes through the real structure — no further exceptions.
+- Attempted to add GitHub branch-protection rules on `main` (block direct pushes, require a PR) as a platform-enforced backstop, not just a remembered process. **Not available**: GitHub blocks branch protection on private repos below the Pro tier. Flagged to the user as an option (GitHub Pro, ~$4/mo) if a hard guarantee is ever wanted — for now this is enforced by process discipline only, not tooling.
+- `staging` and `development` branches created (currently identical to `main` — no divergent content yet).
+
+**What's next:** this branching correction itself lands via the new structure (feature branch → development, confirm before pushing development — not yet promoted to staging/main). After that, Checkpoint 2 resumes on a fresh feature branch off `development`.
+
+**Open question for the user:** promotion cadence from `development` → `staging` → `main` isn't specified yet — i.e., after every feature merge, or batched at real checkpoints/releases? Defaulting to "propose promotion at meaningful checkpoints, not after every small change" unless told otherwise.

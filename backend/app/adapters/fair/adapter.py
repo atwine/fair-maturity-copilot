@@ -4,6 +4,8 @@ content.py/scoring_rubric.py — this class is just the glue that satisfies
 the engine's Adapter Protocol."""
 
 from app.adapters.fair.content import load_indicators, load_options_by_indicator_id
+from app.adapters.fair.prompt import PROMPT_VERSION
+from app.adapters.fair.prompt import render_remediation_prompt as _render_remediation_prompt
 from app.adapters.fair.scoring_rubric import severity_for_answer
 from app.engine.models import Answer, Finding, Indicator
 from app.engine.ports import Question
@@ -12,6 +14,7 @@ from app.engine.scoring import priority_weight_for
 
 class FairAdapter:
     adapter_id = "fair-v0"
+    prompt_version = PROMPT_VERSION
 
     def __init__(self) -> None:
         self._indicators = load_indicators()
@@ -33,3 +36,6 @@ class FairAdapter:
             severity=severity,
             priority_weight=priority_weight_for(indicator.priority),
         )
+
+    def render_remediation_prompt(self, indicator: Indicator, answer: Answer, subject_label: str) -> str:
+        return _render_remediation_prompt(indicator=indicator, answer=answer, subject_label=subject_label)

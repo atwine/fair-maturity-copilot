@@ -5,6 +5,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This pr
 ## [Unreleased]
 
 ### Added
+- Backend REST API (`backend/app/api/`): create/get an assessment, submit answers, complete a run, generate a report (cached — one LLM pass per run, not per view), and regenerate a single finding's remediation. `app/adapters/registry.py` added as the composition root mapping `adapter_id` to a concrete adapter, so the API never imports FAIR-specific code directly.
+- `Adapter` Protocol (`engine/ports.py`) extended with `render_remediation_prompt` and `prompt_version`, implemented by `FairAdapter` — this is what makes the API/report-generation path genuinely standard-agnostic, not just in theory.
+- Full API test suite (`backend/tests/api/`): fast tests for every route's validation/error paths, plus a live suite hitting real vLLM for report generation, caching behavior, and the regenerate endpoint.
 - Remediation prompt template (`backend/app/adapters/fair/prompts/remediation.jinja`) and renderer (`prompt.py`) — pulled forward from a later checkpoint since the demo run below needed real remediation text.
 - 4 synthetic demo dataset fixtures (`backend/fixtures/synthetic_datasets.py`), varied in size/format/domain/FAIR maturity, and `scripts/run_demo_assessment.py` running them end-to-end through the real engine and a live LLM. Generated reports committed at `docs/demo_reports/`.
 - Tests: `tests/engine/test_remediation.py` (grounding-check logic, including the dont_know bypass below) and `tests/fixtures/test_synthetic_datasets.py` (fixture well-formedness).
@@ -22,6 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This pr
 - `content.py`'s YAML anchors/aliases meant every indicator sharing the default scoring rubric or answer options pointed at the exact same Python dict/list object rather than a copy — a latent shared-mutable-state bug. Now deep-copied per indicator; the YAML file is also now parsed once and cached instead of being re-read by three separate functions.
 - The remediation grounding check rejected correct "who to ask" responses for `dont_know` answers with thin notes, since those legitimately don't share words with a near-empty note. Found live against real vLLM output during the Checkpoint 3 demo run; `dont_know` answers now bypass the reference-overlap check (word-count and jargon checks still apply).
 - `scripts/run_demo_assessment.py`'s docstring said the tool defaults to local Ollama, written before the LLM default switch below — caught in review, updated to match.
+- `routes_report.py`'s report generation raised an unguarded `KeyError` (opaque 500) if the database's `Indicator` table hadn't been seeded yet — now a clear error naming `scripts/seed_indicators.py`. Caught in review; regression test added.
 
 ### Changed
 - Repo default branch renamed `master` → `main`; adopted the full three-tier branching structure — `feature/<name>` → `development` → `staging` → `main`, with `main` reachable only via a reviewed, explicitly-approved PR (see `README.md`'s "Branching convention"). An initial two-tier version of this fix (feature → main directly) was corrected in the same session after review.

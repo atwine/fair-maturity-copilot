@@ -1,0 +1,155 @@
+"""Report generation and caching. Generating a report calls the LLM once
+per weak/unknown finding, so it's generated exactly once per run and
+persisted (a Report row) — every later GET returns the cached result,
+never re-calling the LLM. Use the regenerate endpoint to force one finding
+to be redone.
+"""
+
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlmodel import Session, select
+
+from app.adapters.registry import get_adapter
+from app.api.schemas import FindingOut, ReportOut
+from app.db import get_session
+from app.engine.models import Answer, AssessmentRun, Finding, Indicator, RemediationDraft, Report
+from app.engine.remediation import write_remediation
+from app.engine.report import build_report_markdown
+
+router = APIRouter(prefix="/assessments", tags=["report"])
+
+
+def _generate_report(session: Session, run: AssessmentRun) -> None:
+    adapter = get_adapter(run.adapter_id)
+    answers = session.exec(select(Answer).where(Answer.run_id == run.id)).all()
+    indicator_ids = [a.indicator_id for a in answers]
+    indicators = session.exec(select(Indicator).where(Indicator.id.in_(indicator_ids))).all()
+    indicators_by_id = {i.id: i for i in indicators}
+    answers_by_indicator_id = {a.indicator_id: a for a in answers}
+
+    missing_indicators = set(indicator_ids) - set(indicators_by_id)
+    if missing_indicators:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Indicator rows not found in the database for: {sorted(missing_indicators)}. "
+                "Has scripts/seed_indicators.py been run against this database?"
+            ),
+        )
+
+    findings: list[Finding] = []
+    for answer in answers:
+        indicator = indicators_by_id[answer.indicator_id]
+        finding = adapter.score(indicator, answer)
+        session.add(finding)
+        findings.append(finding)
+    session.commit()
+    for f in findings:
+        session.refresh(f)
+
+    remediations_by_finding_id: dict[str, RemediationDraft] = {}
+    for finding in findings:
+        if finding.severity == "pass":
+            continue
+        indicator = indicators_by_id[finding.indicator_id]
+        answer = answers_by_indicator_id[finding.indicator_id]
+        prompt = adapter.render_remediation_prompt(indicator=indicator, answer=answer, subject_label=run.subject_label)
+        draft = write_remediation(finding=finding, answer=answer, prompt=prompt, prompt_version=adapter.prompt_version)
+        session.add(draft)
+        remediations_by_finding_id[str(finding.id)] = draft
+    session.commit()
+
+    markdown, score = build_report_markdown(
+        findings=findings, indicators_by_id=indicators_by_id, remediations_by_finding_id=remediations_by_finding_id
+    )
+    session.add(Report(run_id=run.id, summary_score=score, rendered_markdown=markdown))
+    session.commit()
+
+
+def _load_report_out(session: Session, run_id: UUID) -> ReportOut:
+    report = session.exec(select(Report).where(Report.run_id == run_id)).first()
+    if report is None:
+        raise HTTPException(status_code=500, detail="Report generation did not produce a Report row")
+
+    findings = session.exec(select(Finding).where(Finding.run_id == run_id)).all()
+    finding_ids = [f.id for f in findings]
+    remediations = (
+        session.exec(select(RemediationDraft).where(RemediationDraft.finding_id.in_(finding_ids))).all()
+        if finding_ids
+        else []
+    )
+    remediation_by_finding_id = {r.finding_id: r for r in remediations}
+
+    indicator_ids = {f.indicator_id for f in findings}
+    indicators = (
+        session.exec(select(Indicator).where(Indicator.id.in_(indicator_ids))).all() if indicator_ids else []
+    )
+    indicators_by_id = {i.id: i for i in indicators}
+
+    findings_out = [
+        FindingOut(
+            indicator_id=f.indicator_id,
+            title=indicators_by_id[f.indicator_id].title,
+            severity=f.severity,
+            remediation_text=remediation_by_finding_id[f.id].remediation_text
+            if f.id in remediation_by_finding_id
+            else None,
+        )
+        for f in sorted(findings, key=lambda f: indicators_by_id[f.indicator_id].display_order)
+    ]
+
+    return ReportOut(
+        run_id=run_id,
+        score=report.summary_score,
+        generated_at=report.generated_at,
+        findings=findings_out,
+        markdown=report.rendered_markdown,
+    )
+
+
+@router.get("/{run_id}/report", response_model=ReportOut)
+def get_report(run_id: UUID, session: Session = Depends(get_session)) -> ReportOut:
+    run = session.get(AssessmentRun, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    if run.status != "completed":
+        raise HTTPException(status_code=400, detail="Assessment must be completed before a report can be generated")
+
+    already_generated = session.exec(select(Report).where(Report.run_id == run_id)).first() is not None
+    if not already_generated:
+        _generate_report(session, run)
+
+    return _load_report_out(session, run_id)
+
+
+@router.post("/{run_id}/findings/{indicator_id}/regenerate", response_model=FindingOut)
+def regenerate_finding(run_id: UUID, indicator_id: str, session: Session = Depends(get_session)) -> FindingOut:
+    run = session.get(AssessmentRun, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    finding = session.exec(
+        select(Finding).where(Finding.run_id == run_id, Finding.indicator_id == indicator_id)
+    ).first()
+    if finding is None:
+        raise HTTPException(status_code=404, detail="Finding not found — generate the report first")
+    if finding.severity == "pass":
+        raise HTTPException(status_code=400, detail="No remediation needed for a passing finding")
+
+    answer = session.exec(
+        select(Answer).where(Answer.run_id == run_id, Answer.indicator_id == indicator_id)
+    ).first()
+    indicator = session.get(Indicator, indicator_id)
+    if answer is None or indicator is None:
+        raise HTTPException(status_code=500, detail="Answer or indicator missing for an existing finding")
+
+    adapter = get_adapter(run.adapter_id)
+    prompt = adapter.render_remediation_prompt(indicator=indicator, answer=answer, subject_label=run.subject_label)
+    draft = write_remediation(finding=finding, answer=answer, prompt=prompt, prompt_version=adapter.prompt_version)
+    session.add(draft)
+    session.commit()
+
+    return FindingOut(
+        indicator_id=indicator_id, title=indicator.title, severity=finding.severity, remediation_text=draft.remediation_text
+    )

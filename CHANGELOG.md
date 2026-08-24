@@ -5,6 +5,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This pr
 ## [Unreleased]
 
 ### Added
+- `frontend/components/loading-state.tsx` — a real spinner + message, replacing bare "Loading…" text on all three screens that fetch data (question wizard, review, report generation).
 - Next.js frontend (`frontend/`): the full 4-screen wizard (new assessment → question → review → report) against the backend API, built with Next.js 16 + React 19 + Tailwind v4 + shadcn/ui. `lib/api-client.ts` + `lib/types.ts` mirror the backend's REST contract.
 - `AssessmentOut.answers` field (`schemas.py`, `routes_assessment.py`) — needed so the frontend can pre-fill a previously-given answer when a user returns to edit it, not just know which indicators are answered.
 - Backend REST API (`backend/app/api/`): create/get an assessment, submit answers, complete a run, generate a report (cached — one LLM pass per run, not per view), and regenerate a single finding's remediation. `app/adapters/registry.py` added as the composition root mapping `adapter_id` to a concrete adapter, so the API never imports FAIR-specific code directly.
@@ -21,6 +22,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This pr
 - FastAPI app skeleton (`backend/app/main.py`) with CORS wired for a future Next.js frontend.
 
 ### Fixed
+- **`globals.css`'s `--font-sans` was a circular self-reference** (`var(--font-sans)`), so it resolved to nothing and every page silently fell back to the browser's default serif (Times New Roman) instead of the Geist font actually loaded in `layout.tsx`. Found via a `design-critique` pass, not visible from the code alone — it read as a font *choice*, not a bug, until computed styles were checked directly.
+- Default/sm/lg button sizes computed to ~28-36px tall — under the 44px WCAG touch-target minimum, with sm's text at 12.8px. Bumped across the size scale (`components/ui/button.tsx`).
+- The selected-answer highlight in the question wizard was a single-pixel border-color change — too subtle to register at a glance. Now a 2px border plus a subtle fill tint and bold label on the selected option.
 - **Report-generation race condition** — two concurrent `GET /report` calls for the same run (surfaced by React 19 Strict Mode's double effect invocation, but reproducible by any double-click or refresh mid-generation) each ran a full LLM generation pass, producing duplicate `Report`/`Finding` rows. Fixed with database-level unique constraints (`Answer`/`Finding` on `(run_id, indicator_id)`, `Report` on `run_id`) plus a wait-and-retry path so the losing request returns the winner's result instead of erroring or duplicating. `routes_answers.py`'s answer upsert had the same unprotected check-then-insert pattern and got the same fix pre-emptively. Verified with a real concurrent-HTTP regression test, not just sequential calls. See `docs/DECISIONS.md`.
 - `_load_report_out` picked an arbitrary `RemediationDraft` per finding with no defined order when more than one existed (e.g. after a regenerate call) — could silently show a stale suggestion instead of the latest. Now explicitly ordered by `generated_at`.
 - Banned-jargon regex in the remediation grounding check (`backend/app/engine/remediation.py`) was missing a word-boundary on its RDA-code branch, which could reject valid remediation text that merely contained an RDA-code-like substring inside a longer word. Caught in review before merging to `main`.

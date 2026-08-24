@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/loading-state";
 import { api, ApiError } from "@/lib/api-client";
 import type { Assessment, Question } from "@/lib/types";
 
@@ -50,7 +51,7 @@ export default function ReviewPage() {
     );
   }
   if (!questions || !assessment) {
-    return <main className="flex flex-1 items-center justify-center text-muted-foreground">Loading…</main>;
+    return <LoadingState title="Loading your answers…" />;
   }
 
   const answersByIndicator = new Map(assessment.answers.map((a) => [a.indicator_id, a]));

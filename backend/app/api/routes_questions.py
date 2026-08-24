@@ -20,6 +20,7 @@ def get_questions(adapter_id: str) -> list[QuestionOut]:
             plain_language_question=q.indicator.plain_language_question,
             help_text=q.indicator.help_text,
             priority=q.indicator.priority,
+            principle_group=q.indicator.principle_group,
             display_order=q.indicator.display_order,
             options=q.options,
         )

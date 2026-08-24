@@ -35,7 +35,7 @@ export default function NewAssessmentPage() {
     <main className="flex flex-1 items-center justify-center px-6 py-12">
       <Card className="w-full max-w-lg">
         <CardHeader>
-          <CardTitle>What are we assessing?</CardTitle>
+          <CardTitle className="font-heading text-2xl">What are we assessing?</CardTitle>
           <CardDescription>
             Give the dataset or collection a short, recognizable name &mdash; you&rsquo;ll see it on
             every screen and in the final report.

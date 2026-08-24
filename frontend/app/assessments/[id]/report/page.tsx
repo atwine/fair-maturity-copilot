@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingState } from "@/components/loading-state";
+import { PrincipleChip } from "@/components/fair-spectrum";
 import { api, ApiError } from "@/lib/api-client";
 import type { Finding, Report } from "@/lib/types";
 
@@ -17,12 +17,31 @@ const SEVERITY_LABEL: Record<Finding["severity"], string> = {
   unknown: "Worth finding out",
 };
 
-const SEVERITY_VARIANT: Record<Finding["severity"], "default" | "secondary" | "destructive" | "outline"> = {
-  pass: "secondary",
-  minor_gap: "outline",
-  major_gap: "destructive",
-  unknown: "outline",
+// Own severity chip, not shadcn's Badge variants -- this app has 4 distinct
+// states (not shadcn's default/secondary/destructive/outline), so it needs
+// its own semantic color set rather than being squeezed into a generic one.
+const SEVERITY_STYLE: Record<Finding["severity"], string> = {
+  pass: "bg-severity-pass-soft text-severity-pass",
+  minor_gap: "bg-severity-minor-soft text-severity-minor",
+  major_gap: "bg-severity-major-soft text-severity-major",
+  unknown: "bg-severity-unknown-soft text-severity-unknown",
 };
+
+function SeverityBadge({ severity }: { severity: Finding["severity"] }) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${SEVERITY_STYLE[severity]}`}
+    >
+      {SEVERITY_LABEL[severity]}
+    </span>
+  );
+}
+
+function scoreTone(score: number): string {
+  if (score >= 80) return "text-severity-pass";
+  if (score >= 50) return "text-severity-minor";
+  return "text-severity-major";
+}
 
 export default function ReportPage() {
   const params = useParams<{ id: string }>();
@@ -93,25 +112,33 @@ export default function ReportPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-6 py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-3xl">{report.score}/100</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          {needsAttention.length === 0
-            ? "Every indicator checked out clean."
-            : `${needsAttention.length} of ${report.findings.length} indicators have something worth fixing.`}
+      <Card className="border-2">
+        <CardContent className="flex items-center gap-6 pt-6">
+          <span className={`font-heading text-6xl leading-none font-semibold tabular-nums ${scoreTone(report.score)}`}>
+            {report.score}
+          </span>
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">out of 100</p>
+            <p className="text-sm">
+              {needsAttention.length === 0
+                ? "Every indicator checked out clean."
+                : `${needsAttention.length} of ${report.findings.length} indicators have something worth fixing.`}
+            </p>
+          </div>
         </CardContent>
       </Card>
 
       {needsAttention.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Needs attention</h2>
+          <h2 className="font-heading text-lg font-semibold">Needs attention</h2>
           {needsAttention.map((finding) => (
             <Card key={finding.indicator_id}>
               <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-                <CardTitle className="text-base">{finding.title}</CardTitle>
-                <Badge variant={SEVERITY_VARIANT[finding.severity]}>{SEVERITY_LABEL[finding.severity]}</Badge>
+                <div className="flex min-w-0 items-center gap-2">
+                  <PrincipleChip group={finding.principle_group} />
+                  <CardTitle className="truncate text-base">{finding.title}</CardTitle>
+                </div>
+                <SeverityBadge severity={finding.severity} />
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm">{finding.remediation_text}</p>
@@ -131,10 +158,13 @@ export default function ReportPage() {
 
       {looksGood.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-sm font-medium text-muted-foreground">Looks good</h2>
-          <ul className="space-y-1 text-sm text-muted-foreground">
+          <h2 className="font-heading text-lg font-semibold">Looks good</h2>
+          <ul className="divide-y rounded-md border bg-card">
             {looksGood.map((f) => (
-              <li key={f.indicator_id}>{f.title}</li>
+              <li key={f.indicator_id} className="flex items-center gap-3 p-3 text-sm">
+                <PrincipleChip group={f.principle_group} />
+                <span className="truncate">{f.title}</span>
+              </li>
             ))}
           </ul>
         </div>

@@ -13,6 +13,7 @@ class QuestionOut(BaseModel):
     plain_language_question: str
     help_text: str
     priority: str
+    principle_group: str  # "Findable" | "Accessible" | "Interoperable" | "Reusable"
     display_order: int
     options: list[dict]
 
@@ -52,6 +53,7 @@ class FindingOut(BaseModel):
     indicator_id: str
     title: str
     severity: str
+    principle_group: str  # "Findable" | "Accessible" | "Interoperable" | "Reusable"
     remediation_text: str | None
 
 

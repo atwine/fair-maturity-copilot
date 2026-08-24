@@ -12,7 +12,7 @@ from app.engine.llm_client import generate
 from app.engine.models import Answer, Finding, RemediationDraft
 from app.config import settings
 
-_BANNED_TERMS = re.compile(r"\bFAIR principle|RDA-[A-Z0-9.\-]+\b", re.IGNORECASE)
+_BANNED_TERMS = re.compile(r"\bFAIR principle\b|\bRDA-[A-Z0-9.\-]+\b", re.IGNORECASE)
 _WORD_COUNT_RANGE = (15, 160)  # generous band around the ~120-word target; see docs/PLANNING_PROMPT.md
 
 

@@ -17,3 +17,9 @@ Further feedback: the grant-writing copilot was dropped on adoption-risk grounds
 ## v4 — build order confirmed
 
 FAIR adapter (idea #3) confirmed as the build-first project: no external data dependency, can start immediately, and validates the shared engine before the OMOP adapter depends on it. OMOP adapter (idea #4) tracked in `../ROADMAP.md` as parked, blocked on TASO's data access and ETL-path decision. Luganda MT (idea #1) confirmed strong but separately parked, pending the team's in-flight evaluation of ~10,000 curated translation pairs — it will live in its own repo when it starts, since it doesn't share the engine/adapter architecture.
+
+## v5 — plan approved, engine scaffold built, process corrections
+
+The v0 plan (indicator subset, data model, questionnaire flow, prompt design, milestones, eval approach) was produced via Plan Mode and approved. Two choices were made during planning that diverged from the plan's own default recommendations: Next.js was chosen over the plan's suggested server-rendered Jinja2+htmx frontend, and LLM serving was set to two verified on-prem OpenAI-compatible endpoints (local Ollama for dev, vLLM-hosted Llama 3.3 70B for pilot) rather than the plan's original hosted-third-party-API-for-dev suggestion — this removed any external data-exposure question entirely, since nothing leaves the local network at any stage.
+
+Two process corrections landed alongside the first implementation checkpoint: the repo had been committed directly to a shared branch, against the standing branching convention — corrected by renaming `master` to `main` and moving to a feature-branch workflow with mandatory self-review before merge (see `README.md`). And the plan's day-based milestone estimates were replaced with checkpoint tracking in `ROADMAP.md`, since they assumed unassisted solo development and didn't match the actual pace of Claude-assisted implementation.

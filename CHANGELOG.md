@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This pr
 ## [Unreleased]
 
 ### Added
+- FAIR adapter content (`backend/app/adapters/fair/`): `indicators.yaml` with the 12 selected RDA indicators (plain-language question, definition, help text, priority, scoring rubric for each), `FairAdapter` implementing the engine's `Adapter` Protocol, and `scripts/seed_indicators.py` to load them into the database. Flex-slot indicator resolved to F3-01M — see `docs/DECISIONS.md`.
+- `backend/tests/adapters/fair/test_adapter.py` — covers question-set completeness, content non-emptiness, and answer-to-severity scoring.
 - Repo scaffold: `README.md`, `ROADMAP.md`, `docs/PLANNING_PROMPT.md`, `docs/DECISIONS.md`, `docs/background/` (the v1-v3 idea-scoping history), `devlog/HANDOFF.md`.
 - Backend engine scaffold (`backend/app/engine/`): standard-agnostic data model (`Adapter`, `Indicator`, `AssessmentRun`, `Answer`, `Finding`, `RemediationDraft`, `Report`), the `Adapter` Protocol seam (`ports.py`), generic severity scoring, the remediation-writer stage with automated grounding checks, and an OpenAI-compatible LLM client configured for both a local Ollama endpoint (dev) and a vLLM-hosted Llama 3.3 70B endpoint (pilot) via env vars only.
 - `backend/tests/engine/test_boundary.py` — proves the engine/adapter boundary against a fake adapter, before any FAIR-specific content exists.
@@ -12,6 +14,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This pr
 
 ### Fixed
 - Banned-jargon regex in the remediation grounding check (`backend/app/engine/remediation.py`) was missing a word-boundary on its RDA-code branch, which could reject valid remediation text that merely contained an RDA-code-like substring inside a longer word. Caught in review before merging to `main`.
+- `indicators.yaml`'s unquoted `yes`/`no` keys and values were silently parsed as Python booleans by PyYAML (the classic YAML 1.1 "Norway problem"), breaking every scoring lookup. Caught by actually running the tests, not by review.
+- `scripts/seed_indicators.py` raised `DetachedInstanceError` when logging its success message, from reading an ORM attribute after the database session that loaded it had already closed.
+- `content.py`'s YAML anchors/aliases meant every indicator sharing the default scoring rubric or answer options pointed at the exact same Python dict/list object rather than a copy — a latent shared-mutable-state bug. Now deep-copied per indicator; the YAML file is also now parsed once and cached instead of being re-read by three separate functions.
 
 ### Changed
 - Repo default branch renamed `master` → `main`; adopted the full three-tier branching structure — `feature/<name>` → `development` → `staging` → `main`, with `main` reachable only via a reviewed, explicitly-approved PR (see `README.md`'s "Branching convention"). An initial two-tier version of this fix (feature → main directly) was corrected in the same session after review.

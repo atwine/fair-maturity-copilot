@@ -4,7 +4,7 @@ A guided, plain-language FAIR data-maturity assessment tool for research organiz
 
 ## Status
 
-**In progress.** The backend engine is scaffolded and its core boundary is tested; the FAIR-specific content (indicators, prompts, API routes) and the Next.js frontend are next. See [`ROADMAP.md`](ROADMAP.md) for current checkpoint status and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
+**In progress.** The backend engine is scaffolded and tested, and the FAIR adapter's content (12 indicators, scoring, seed script) is built and tested. Synthetic demo data, the remediation-writer prompt, the REST API, and the Next.js frontend are next. See [`ROADMAP.md`](ROADMAP.md) for current checkpoint status and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
 
 ## The problem
 
@@ -39,10 +39,11 @@ cd backend
 python -m venv .venv
 ./.venv/Scripts/python.exe -m pip install -e ".[dev]"   # Windows; drop the .exe path prefix on macOS/Linux
 cp .env.example .env   # then fill in DATABASE_URL (see the file for a free Neon setup)
-./.venv/Scripts/python.exe -m pytest tests/engine -v
+./.venv/Scripts/python.exe -m pytest tests/ -v
+./.venv/Scripts/python.exe scripts/seed_indicators.py   # loads the 12 FAIR indicators into the DB
 ```
 
-The engine boundary test (`tests/engine/test_boundary.py`) runs against a fake adapter and needs no database or LLM connection — it's the fastest way to confirm the setup works.
+Most tests (`tests/engine/`, `tests/adapters/fair/`) need no database or LLM connection — they're the fastest way to confirm the setup works. `seed_indicators.py` does need a real `DATABASE_URL` (Postgres via Neon, or a local SQLite URL like `sqlite:///./dev.db` for quick local testing).
 
 ## Branching convention
 
@@ -67,7 +68,7 @@ feature/<name>  →  development  →  staging  →  main
 backend/
   app/
     engine/            — standard-agnostic core (models, scoring, remediation, LLM client)
-    adapters/fair/      — FAIR-specific indicators/prompts (content, not yet populated)
+    adapters/fair/      — FAIR-specific indicators.yaml, adapter, scoring rubric (populated; prompts/ next)
     api/                — REST routes (not yet built)
   tests/engine/         — proves the engine/adapter boundary against a fake adapter
   .env.example          — required env vars, including both LLM provider presets

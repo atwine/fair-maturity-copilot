@@ -9,7 +9,7 @@ This project is one reusable engine (`intake → scoring → LLM remediation wri
 Guided self-assessment against a subset of the RDA's 41 FAIR indicators, with LLM-generated plain-language remediation for each weak indicator.
 
 - [x] **Checkpoint 1 — engine scaffold + boundary proof.** FastAPI app, SQLModel data model, the `Adapter` Protocol seam, dual-provider (Ollama/vLLM) LLM client, remediation grounding checks. Proven with a fake adapter before any FAIR content exists (`backend/tests/engine/test_boundary.py`, passing).
-- [ ] **Checkpoint 2 — FAIR adapter content.** `indicators.yaml` (the 12 selected RDA indicators), the adapter's `score()` implementation, seed script.
+- [x] **Checkpoint 2 — FAIR adapter content.** `indicators.yaml` (the 12 selected RDA indicators, flex-slot resolved to F3-01M — see `docs/DECISIONS.md`), `FairAdapter.score()`, `scripts/seed_indicators.py`. Tested against SQLite (no Neon project yet) — seed script confirmed idempotent on a second run.
 - [ ] **Checkpoint 3 — synthetic demo dataset(s).** A small library of fake, realistic "datasets being assessed" — varied sizes/formats/domains — so the tool can be demoed and dogfooded end-to-end without waiting on real ACE data, and without ever needing to run real institutional data through an LLM before that's actually been cleared. See the note below — this matters even more once the OMOP adapter exists.
 - [ ] **Checkpoint 4 — backend REST API.** Assessment/question/answer/report routes, CORS, exercised manually before any frontend exists.
 - [ ] **Checkpoint 5 — Next.js frontend.** Scaffold, shadcn setup, the 4-screen wizard (new → question → review → report) against the API contract.

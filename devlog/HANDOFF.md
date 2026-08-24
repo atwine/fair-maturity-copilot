@@ -65,3 +65,21 @@ Running context for any agent (Claude, Devin, or a fresh session of either) pick
 **What's next:** this branching correction itself lands via the new structure (feature branch → development, confirm before pushing development — not yet promoted to staging/main). After that, Checkpoint 2 resumes on a fresh feature branch off `development`.
 
 **Open question for the user:** promotion cadence from `development` → `staging` → `main` isn't specified yet — i.e., after every feature merge, or batched at real checkpoints/releases? Defaulting to "propose promotion at meaningful checkpoints, not after every small change" unless told otherwise.
+
+---
+
+## 2026-08-24 — Checkpoint 2: FAIR adapter content
+
+**What exists now:** `backend/app/adapters/fair/` is populated — `indicators.yaml` (12 indicators), `content.py` (YAML loader, cached + deep-copied), `adapter.py` (`FairAdapter`, implements `engine.ports.Adapter`), `scoring_rubric.py`. `scripts/seed_indicators.py` loads it all into a DB, idempotently. `backend/tests/adapters/fair/test_adapter.py` covers question-set shape, content completeness, and scoring. Full suite: `pytest tests/` → 5 passed.
+
+**What was decided:** the 12th "flex slot" indicator resolved to F3-01M (completes Findable coverage) over I3-01M (cross-dataset linking, judged premature — same reasoning already used to defer I3's other sub-indicators in the original plan). See `docs/DECISIONS.md` v7 for the full rationale.
+
+**Bugs found and fixed this session** (worth reading if picking this up cold — these are exactly the kind of thing that would silently corrupt scoring):
+1. PyYAML's "Norway problem" — unquoted `yes`/`no` in `indicators.yaml` were silently parsed as Python `True`/`False`, breaking every rubric lookup. Caught by running the tests, not by reading the code. Fixed by quoting them; comment left in the YAML explaining why.
+2. `seed_indicators.py` raised `DetachedInstanceError` reading `adapter.id` in a log message after the DB session that owned it had closed. Fixed by capturing the value before the session closes.
+3. (Self-review, after the above) `indicators.yaml`'s `&anchor`/`*alias` reuse meant every indicator sharing the default rubric/options pointed at the literal same Python object, not a copy — a latent shared-mutable-state bug if any future code customizes one indicator's rubric. Fixed with `copy.deepcopy` in `content.py`.
+4. (Same pass) the YAML file was being parsed from disk three separate times per `FairAdapter` construction. Fixed with a single `@lru_cache`d loader.
+
+**What's next:** Checkpoint 3 (synthetic demo datasets) or Checkpoint 4 (backend REST API) — see `ROADMAP.md`. This work is sitting on `feature/fair-indicators`, not yet merged into `development` — needs a self-review confirmation and a "push development" go-ahead like last time before it lands there.
+
+**Open questions carried forward:** Neon Postgres still not provisioned (seed script only smoke-tested against SQLite so far — Postgres-specific behavior, e.g. the JSON column type, isn't proven yet). Promotion cadence for development→staging→main still unconfirmed by the user.

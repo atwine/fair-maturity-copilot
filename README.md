@@ -4,7 +4,7 @@ A guided, plain-language FAIR data-maturity assessment tool for research organiz
 
 ## Status
 
-**In progress.** The backend — engine, FAIR adapter content, remediation prompt, and REST API — is fully built and tested, including live end-to-end runs against vLLM (see [`docs/demo_reports/`](docs/demo_reports/)). The Next.js frontend is next; until it exists, the API is exercised directly (see below) or via `scripts/run_demo_assessment.py`. See [`ROADMAP.md`](ROADMAP.md) for current checkpoint status and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
+**In progress, feature-complete for v0.** Backend (engine, FAIR adapter content, remediation prompt, REST API) and frontend (the full 4-screen wizard) are both built and tested, including a live end-to-end run in a real browser against vLLM. Not yet deployed anywhere or piloted with a real ACE user — see [`ROADMAP.md`](ROADMAP.md) for what's left (an eval harness, deployment, the actual pilot) and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
 
 ## The problem
 
@@ -29,7 +29,7 @@ Built by [ACE](https://ace.ac.ug) (Africa Center of Excellence in Bioinformatics
 ## Tech stack
 
 - **Backend**: FastAPI + SQLModel + Alembic, Postgres (Neon)
-- **Frontend**: Next.js + React + TypeScript + Tailwind + shadcn/ui (not yet scaffolded)
+- **Frontend**: Next.js 16 + React 19 + TypeScript + Tailwind v4 + shadcn/ui (built on Base UI, not Radix — its polymorphic components use a `render` prop, not `asChild`)
 - **LLM**: OpenAI-compatible client against on-prem vLLM (Llama 3.3 70B, AWQ INT4) — the default for both dev and pilot, since it's dedicated A100 infra and the actual production target. Local Ollama is kept as an offline fallback only, not routine dev — it was tried first but is slower in practice on this hardware. Provider is a config swap (`backend/.env`), never a code change.
 
 ## Getting started (backend)
@@ -61,6 +61,16 @@ Most tests (`tests/engine/`, `tests/adapters/fair/`) need no database or LLM con
 | GET | `/assessments/{id}/report` | Generate (once) or fetch the cached report — plain-language findings + score |
 | POST | `/assessments/{id}/findings/{indicator_id}/regenerate` | Force one finding's remediation to be redone |
 
+## Getting started (frontend)
+
+```bash
+cd frontend
+npm install
+npm run dev   # http://localhost:3000 — needs the backend running at :8000 (see above)
+```
+
+Defaults to calling the backend at `http://localhost:8000`; override with `NEXT_PUBLIC_API_BASE_URL` in a `.env.local` (see `.env.local.example`) if it's running elsewhere.
+
 ## Branching convention
 
 Three long-lived branches, promotion in one direction only:
@@ -91,6 +101,9 @@ backend/
   scripts/               — seed_indicators.py, run_demo_assessment.py
   tests/                 — engine boundary, FAIR adapter, remediation grounding, fixture checks
   .env.example          — required env vars, including both LLM provider presets
+frontend/
+  app/                   — the 4-screen wizard (new, question/[indicatorId], review, report)
+  lib/                   — api-client.ts + types.ts, mirroring the backend's REST contract
 docs/
   PLANNING_PROMPT.md    — the Plan Mode prompt that produced the v0 build plan
   DECISIONS.md          — why this project, and not the nine other ideas we scoped first

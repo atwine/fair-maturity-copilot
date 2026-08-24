@@ -23,16 +23,6 @@ class CreateAssessmentRequest(BaseModel):
     created_by_email: str | None = None
 
 
-class AssessmentOut(BaseModel):
-    id: UUID
-    adapter_id: str
-    subject_label: str
-    status: str
-    created_at: datetime
-    completed_at: datetime | None
-    answered_indicator_ids: list[str]
-
-
 class AnswerIn(BaseModel):
     value: str  # "yes" | "partial" | "no" | "dont_know"
     label: str
@@ -45,6 +35,17 @@ class AnswerOut(BaseModel):
     label: str
     note: str | None
     is_dont_know: bool
+
+
+class AssessmentOut(BaseModel):
+    id: UUID
+    adapter_id: str
+    subject_label: str
+    status: str
+    created_at: datetime
+    completed_at: datetime | None
+    answered_indicator_ids: list[str]
+    answers: list[AnswerOut]
 
 
 class FindingOut(BaseModel):

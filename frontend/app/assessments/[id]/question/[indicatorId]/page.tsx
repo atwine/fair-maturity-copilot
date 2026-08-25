@@ -20,10 +20,12 @@ export default function QuestionPage() {
   const params = useParams<{ id: string; indicatorId: string }>();
   const searchParams = useSearchParams();
   const { id: runId, indicatorId } = params;
-  // Reached from a "Update your answer" action on the report, rather than
-  // as part of the original 12-question flow -- changes what happens on
-  // submit and skips the "already completed, go to report" redirect below.
-  const isRevisit = searchParams.get("from") === "report";
+  // Reached from an "Update your answer" action on the report or the plan,
+  // rather than as part of the original 12-question flow -- changes what
+  // happens on submit (return to wherever it came from) and skips the
+  // "already completed, go to report" redirect below.
+  const revisitFrom = searchParams.get("from");
+  const isRevisit = revisitFrom === "report" || revisitFrom === "plan";
 
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
@@ -74,6 +76,7 @@ export default function QuestionPage() {
       currentIndex={currentIndex}
       subjectLabel={assessment.subject_label}
       isRevisit={isRevisit}
+      revisitReturnTo={revisitFrom === "plan" ? "plan" : "report"}
       existingAnswer={assessment.answers.find((a) => a.indicator_id === indicatorId)}
       onAnswered={(updatedAnswer) =>
         setAssessment((prev) =>
@@ -98,6 +101,7 @@ function QuestionForm({
   currentIndex,
   subjectLabel,
   isRevisit,
+  revisitReturnTo,
   existingAnswer,
   onAnswered,
 }: {
@@ -106,6 +110,7 @@ function QuestionForm({
   currentIndex: number;
   subjectLabel: string;
   isRevisit: boolean;
+  revisitReturnTo: "report" | "plan";
   existingAnswer: AnswerOut | undefined;
   onAnswered: (answer: AnswerOut) => void;
 }) {
@@ -132,7 +137,7 @@ function QuestionForm({
       });
       onAnswered(answer);
       if (isRevisit) {
-        router.push(`/assessments/${runId}/report`);
+        router.push(`/assessments/${runId}/${revisitReturnTo}`);
       } else if (isLast) {
         router.push(`/assessments/${runId}/review`);
       } else {
@@ -215,7 +220,7 @@ function QuestionForm({
             type="button"
             variant="outline"
             nativeButton={false}
-            render={<Link href={`/assessments/${runId}/report`}>Cancel</Link>}
+            render={<Link href={`/assessments/${runId}/${revisitReturnTo}`}>Cancel</Link>}
           />
         ) : (
           <Button type="button" variant="outline" onClick={handleBack} disabled={currentIndex === 0 || submitting}>
@@ -223,7 +228,13 @@ function QuestionForm({
           </Button>
         )}
         <Button type="button" onClick={handleNext} disabled={!value || submitting}>
-          {submitting ? "Saving…" : isRevisit ? "Save and return to report" : isLast ? "Review answers" : "Next"}
+          {submitting
+            ? "Saving…"
+            : isRevisit
+              ? `Save and return to ${revisitReturnTo === "plan" ? "plan" : "report"}`
+              : isLast
+                ? "Review answers"
+                : "Next"}
         </Button>
       </div>
     </main>

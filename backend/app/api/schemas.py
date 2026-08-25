@@ -64,3 +64,21 @@ class ReportOut(BaseModel):
     generated_at: datetime
     findings: list[FindingOut]
     markdown: str
+
+
+class PlanIndicatorRefOut(BaseModel):
+    indicator_id: str
+    title: str
+    principle_group: str  # "Findable" | "Accessible" | "Interoperable" | "Reusable"
+
+
+class PlanStepOut(BaseModel):
+    title: str
+    detail: str
+    indicators: list[PlanIndicatorRefOut]
+
+
+class PlanOut(BaseModel):
+    run_id: UUID
+    goal: str
+    steps: list[PlanStepOut]

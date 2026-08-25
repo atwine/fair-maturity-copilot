@@ -63,3 +63,21 @@ export interface Report {
   findings: Finding[];
   markdown: string;
 }
+
+export interface PlanIndicatorRef {
+  indicator_id: string;
+  title: string;
+  principle_group: PrincipleGroup;
+}
+
+export interface PlanStep {
+  title: string;
+  detail: string;
+  indicators: PlanIndicatorRef[];
+}
+
+export interface Plan {
+  run_id: string;
+  goal: string;
+  steps: PlanStep[];
+}

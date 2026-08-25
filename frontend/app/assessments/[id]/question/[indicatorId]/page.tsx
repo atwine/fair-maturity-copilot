@@ -155,6 +155,10 @@ function QuestionForm({
 
       <div className="space-y-3">
         <h1 className="font-heading text-2xl font-semibold text-balance">{question.plain_language_question}</h1>
+        <div className="rounded-md border border-primary/20 bg-accent p-3 text-sm text-accent-foreground">
+          <span className="font-semibold">For example: </span>
+          {question.example}
+        </div>
         <button
           type="button"
           onClick={() => setShowHelp((s) => !s)}

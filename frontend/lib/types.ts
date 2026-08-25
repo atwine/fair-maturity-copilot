@@ -16,6 +16,7 @@ export interface Question {
   title: string;
   plain_language_question: string;
   help_text: string;
+  example: string;
   priority: "essential" | "important" | "useful";
   principle_group: PrincipleGroup;
   display_order: number;

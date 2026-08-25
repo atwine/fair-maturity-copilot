@@ -40,6 +40,7 @@ def _make_indicator(priority: str) -> Indicator:
         definition="Exists only to test the engine.",
         plain_language_question="Is this a fake question?",
         help_text="",
+        example="",
         priority=priority,
         display_order=1,
         scoring_rubric={},

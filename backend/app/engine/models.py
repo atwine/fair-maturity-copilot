@@ -33,6 +33,7 @@ class Indicator(SQLModel, table=True):
     definition: str
     plain_language_question: str
     help_text: str
+    example: str  # a concrete worked example grounding the question in a real scenario
     priority: str  # "essential" | "important" | "useful" — adapter-defined vocabulary
     display_order: int
     scoring_rubric: dict = Field(sa_column=Column(JSON))

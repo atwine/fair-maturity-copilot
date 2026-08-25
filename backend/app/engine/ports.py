@@ -48,3 +48,14 @@ class Adapter(Protocol):
         gets sent to the LLM and grounding-checked; the adapter owns *what*
         goes into it, and severity is what lets it pick the right framing."""
         ...
+
+    def render_mentor_system_prompt(
+        self, indicator: Indicator, subject_label: str, skill_level: str, severity: str
+    ) -> str:
+        """Build the system prompt for a mentor chat scoped to one indicator
+        (Checkpoint 9). The engine (app/engine/mentor.py) owns *how* the
+        conversation loop runs and how a confirmed-fix line in the model's
+        reply gets parsed and turned into a real answer update; the adapter
+        owns *what* grounds the mentor (this standard's own content/tone)
+        and how skill_level changes its explanations."""
+        ...

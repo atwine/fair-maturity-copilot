@@ -289,3 +289,25 @@ Running context for any agent (Claude, Devin, or a fresh session of either) pick
 **What's next:** the user's own choice — Checkpoints 6/7 on the roadmap, the still-unscoped "over-the-shoulder mentor" conversation, or the one remaining small backlog item. This work landed on `feature/about-page`, branched cleanly from `development` (checked `git branch --show-current` before touching anything) — not yet merged, pending the user's go-ahead.
 
 **Open questions carried forward:** Neon still not provisioned. Promotion cadence unconfirmed. `development` is sitting several commits ahead of `origin/development` again (this branch not yet merged) — confirm exactly how many before the next push conversation.
+
+---
+
+## 2026-08-25 — PR #1 merged to production; README caught up; mentor idea ideated and scoped
+
+**Production shipped.** [PR #1](https://github.com/atwine/fair-maturity-copilot/pull/1) (`staging` → `main`) was merged by the user. Pulled `main` locally, confirmed via `gh pr view 1` that it actually merged rather than assuming from the user saying "I am done merging." All three long-lived branches (`main`/`staging`/`development`) are in sync with GitHub as of this entry.
+
+**Caught in the same breath:** the README still described a "4-screen wizard" with no mention of the plan/about pages or the `/plan` endpoint — stale against what had actually shipped. Fixed on its own branch (`feature/readme-update`), merged to `development`, and pushed after explicit confirmation.
+
+**Then: a real scoping conversation for the "over-the-shoulder mentor" idea**, at the user's request ("let's ideate on the scope of this") — no code written, pure ideation, recorded in full in `docs/DECISIONS.md` v19. Four possible shapes were laid out (conversational front door / additive Q&A sidecar / adjustable FAIR-DSM-style ambition levels / a coaching layer over the Plan); the user picked the most ambitious, the coaching layer, explicitly: "I think D is what would really be worth the effort, we might as well go in big." That got sized against three real axes, each with an explicit user decision:
+
+1. **Capability** — tool-calling into the existing answer-update/rescore machinery (v15), not external verification/crawling (which would just be quietly rebuilding F-UJI/FAIR Checker, the opposite of v18's own conclusion). User: "I don't want to over complicate this."
+2. **Knowledge base** — this tool's own synthesis (`docs/WHY-THIS-TOOL.md` + `indicators.yaml`), not RAG over the six raw source documents. User declined RAG explicitly, with a clear reason worth remembering: "I want it as a proof of concept first before I go deeper... let me first present it to some people who are more experienced. Then once they give some comments, we can beautify it or upgrade it accordingly." RAG is deferred pending that feedback, not rejected outright.
+3. **Skill-level adaptation** — an explicit "new to this / done this before" toggle, not inference from writing style. The user's own honest self-assessment is worth recording verbatim, since it reframes what "newbie" means for this tool: despite being the tool's own strategic lead, "even though I have heard a lot about this, when I first land on this tool, I would probably say I'm a newbie, because I don't even know how to think through it, where to start... the paradigms around it, really, I would need some sort of guidance." **Newbie here means unfamiliar with this specific process, not unintelligent or junior** — worth keeping in mind when the toggle's actual copy gets written, so it doesn't read as condescending to someone exactly like the person who requested it.
+
+**Result:** a real, buildable proof-of-concept scope, now tracked as Checkpoint 9 in `ROADMAP.md` (independent of, doesn't block, Checkpoints 6-8) — scoped-per-step chat, tool-calling, no RAG, one explicit skill toggle, minimal new persistence (a conversation-history table; no new progress-tracking model needed, since Answer/Finding already carry that signal). One real risk flagged for early testing, not yet checked: per-message LLM round-trip latency against real vLLM, since a mentor that replies slowly doesn't feel like a mentor.
+
+**Nothing built yet — this was pure scoping,** per the user's explicit request to record it and revisit later rather than start implementing immediately.
+
+**What's next:** the user's choice — start Checkpoint 9 (mentor POC) for real, or pick up Checkpoints 6/7/8, or the one remaining small backlog item (repository recommendations in remediation prompts). This session's docs work landed on `docs/mentor-scoping`, branched cleanly from `development` — not yet merged, pending review.
+
+**Open questions carried forward:** Neon still not provisioned. Promotion cadence unconfirmed.

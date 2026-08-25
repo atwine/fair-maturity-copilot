@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingState } from "@/components/loading-state";
@@ -70,17 +71,27 @@ export default function PlanPage() {
       ) : (
         <ol className="space-y-5">
           {plan.steps.map((step, i) => (
-            <li key={step.title}>
+            <li key={step.id}>
               <Card>
                 <CardContent className="space-y-3 pt-6">
-                  <div className="flex items-start gap-3">
-                    <span className="font-heading text-2xl leading-none font-semibold text-primary tabular-nums">
-                      {i + 1}
-                    </span>
-                    <div className="space-y-1.5">
-                      <h2 className="font-heading text-lg font-semibold">{step.title}</h2>
-                      <p className="text-base leading-relaxed">{step.detail}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <span className="font-heading text-2xl leading-none font-semibold text-primary tabular-nums">
+                        {i + 1}
+                      </span>
+                      <div className="space-y-1.5">
+                        <h2 className="font-heading text-lg font-semibold">{step.title}</h2>
+                        <p className="text-base leading-relaxed">{step.detail}</p>
+                      </div>
                     </div>
+                    <Link
+                      href={`/assessments/${runId}/mentor/${step.id}`}
+                      title="Talk this whole step through with the mentor"
+                      aria-label={`Talk through "${step.title}" with the mentor`}
+                      className="flex size-8 shrink-0 items-center justify-center rounded-full border bg-card text-muted-foreground hover:border-primary hover:text-primary"
+                    >
+                      <MessageCircle className="size-4" />
+                    </Link>
                   </div>
                   <ul className="flex flex-wrap gap-2 pl-9">
                     {step.indicators.map((indicator) => (
@@ -102,11 +113,18 @@ export default function PlanPage() {
         </ol>
       )}
 
-      <Button
-        variant="outline"
-        nativeButton={false}
-        render={<Link href={`/assessments/${runId}/report`}>Back to report</Link>}
-      />
+      <div className="flex items-center justify-between pt-2">
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href={`/assessments/${runId}/report`}>Back to report</Link>}
+        />
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href="/assessments/new">Start another assessment</Link>}
+        />
+      </div>
     </main>
   );
 }

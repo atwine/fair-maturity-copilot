@@ -2,7 +2,7 @@
 // No caching/retry layer yet -- add one if/when a real usage pattern
 // actually needs it, not preemptively.
 
-import type { Assessment, AnswerIn, AnswerOut, Finding, Question, Report } from "./types";
+import type { Assessment, AnswerIn, AnswerOut, Finding, Plan, Question, Report } from "./types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -57,6 +57,8 @@ export const api = {
 
   regenerateFinding: (runId: string, indicatorId: string) =>
     request<Finding>(`/assessments/${runId}/findings/${indicatorId}/regenerate`, { method: "POST" }),
+
+  getPlan: (runId: string) => request<Plan>(`/assessments/${runId}/plan`),
 };
 
 export { ApiError };

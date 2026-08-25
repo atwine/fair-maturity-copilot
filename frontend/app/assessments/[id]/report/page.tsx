@@ -132,6 +132,14 @@ export default function ReportPage() {
       </Card>
 
       {needsAttention.length > 0 && (
+        <Button
+          size="lg"
+          nativeButton={false}
+          render={<Link href={`/assessments/${runId}/plan`}>See your FAIRification plan</Link>}
+        />
+      )}
+
+      {needsAttention.length > 0 && (
         <div className="space-y-4">
           <h2 className="font-heading text-xl font-semibold">Needs attention</h2>
           {needsAttention.map((finding) => (

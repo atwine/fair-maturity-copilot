@@ -331,3 +331,23 @@ Running context for any agent (Claude, Devin, or a fresh session of either) pick
 **What's next:** the user's choice, same options as before this Neon detour — Checkpoint 6 (eval harness), Checkpoint 7 (deploy, though now meaningfully closer since the database is real), the mentor POC (Checkpoint 9), or the one remaining small backlog item. This work is sitting on `feature/neon-provisioning`, not yet merged into `development`.
 
 **Open questions carried forward:** Promotion cadence still unconfirmed. Production-branch Neon scale-to-zero timing needs a real decision before Checkpoint 7, not before. Local dev backend is currently pointed at Neon (`development` branch) instead of SQLite — occasional 30-40s cold-start delays after idle periods are expected and not a bug.
+
+---
+
+## 2026-08-25 — Session pause: Neon work merged and pushed, remaining work organized into GitHub issues for Devin handoff
+
+**Status at pause:** `feature/neon-provisioning` was merged into `development` and pushed to `origin/development` (also corrected the inaccurate code comment in `db.py` before committing — it claimed the Neon dev branch suspends "almost immediately," which was the initial misdiagnosis mentioned in the entry above; the actual behavior is the 5-minute Free-tier default). `development` is fully up to date with `origin/development` as of this pause. No other local branches have unmerged work.
+
+**Everything not yet done has been filed as a GitHub issue**, each written to be picked up cold (by Devin or anyone else) without needing this conversation's context — every issue links back to the specific `ROADMAP.md`/`docs/DECISIONS.md` sections to read first, states what's already decided vs. still open, and flags anything that needs the project owner's call rather than an autonomous decision:
+
+- [#2 — Checkpoint 6: eval harness](https://github.com/atwine/fair-maturity-copilot/issues/2)
+- [#3 — Checkpoint 7: deploy to Railway + dogfood](https://github.com/atwine/fair-maturity-copilot/issues/3) — flags the Neon production scale-to-zero plan-upgrade decision and the vLLM-endpoint-reachability-from-Railway question as things to surface to the project owner, not decide unilaterally.
+- [#4 — Checkpoint 8: real ACE pilot](https://github.com/atwine/fair-maturity-copilot/issues/4) — depends on #3; requires the project owner to actually arrange the pilot session, flagged explicitly as not something an agent can do alone.
+- [#5 — Checkpoint 9: mentor POC](https://github.com/atwine/fair-maturity-copilot/issues/5) — full scope already decided in `docs/DECISIONS.md` v19 (tool-calling only, explicit skill toggle, no RAG for now); issue is written so the scope doesn't need re-deriving, just built.
+- [#6 — Backlog: broaden repository recommendations](https://github.com/atwine/fair-maturity-copilot/issues/6) — smallest item, research already done in `docs/DECISIONS.md` v16, just needs implementing in `remediation.jinja`.
+
+**Why organized this way:** the project owner is stepping away for other work today and may hand some of these to Devin to pick up independently while away, hence the emphasis on each issue being self-contained rather than assuming shared session context.
+
+**Servers shut down** at the end of this session — nothing left running locally.
+
+**Open questions carried forward:** same as above (promotion cadence, Neon production scale-to-zero plan decision) — plus, when Devin or the next session picks up any of the 4 checkpoint issues, remember the standing branching rule this project keeps slipping on: check `git branch --show-current` before editing anything, work on a `feature/<name>` branch off `development`, never push directly to `main`/`staging` without a PR and the project owner's explicit go-ahead to merge.

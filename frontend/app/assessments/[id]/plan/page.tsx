@@ -111,11 +111,18 @@ export default function PlanPage() {
         </ol>
       )}
 
-      <Button
-        variant="outline"
-        nativeButton={false}
-        render={<Link href={`/assessments/${runId}/report`}>Back to report</Link>}
-      />
+      <div className="flex items-center justify-between pt-2">
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href={`/assessments/${runId}/report`}>Back to report</Link>}
+        />
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href="/assessments/new">Start another assessment</Link>}
+        />
+      </div>
     </main>
   );
 }

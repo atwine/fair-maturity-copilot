@@ -12,6 +12,7 @@ class QuestionOut(BaseModel):
     title: str
     plain_language_question: str
     help_text: str
+    example: str
     priority: str
     principle_group: str  # "Findable" | "Accessible" | "Interoperable" | "Reusable"
     display_order: int

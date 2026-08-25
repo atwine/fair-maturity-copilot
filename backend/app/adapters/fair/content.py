@@ -49,6 +49,7 @@ def load_indicators() -> list[Indicator]:
                 definition=item["definition"].strip(),
                 plain_language_question=item["plain_language_question"].strip(),
                 help_text=item["help_text"].strip(),
+                example=item["example"].strip(),
                 priority=item["priority"],
                 display_order=item["display_order"],
                 scoring_rubric=copy.deepcopy(item["scoring_rubric"]),

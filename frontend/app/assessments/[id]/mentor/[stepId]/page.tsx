@@ -11,9 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { LoadingState } from "@/components/loading-state";
 import { PrincipleChip } from "@/components/fair-spectrum";
 import { api, ApiError } from "@/lib/api-client";
-import type { MentorAction, MentorConversation, MentorMessage, Question, SkillLevel } from "@/lib/types";
-
-const ADAPTER_ID = "fair-v0";
+import type { MentorAction, MentorConversation, MentorMessage, PlanIndicatorRef, PlanStep, SkillLevel } from "@/lib/types";
 
 // Only bold/italics are rendered -- everything else (headings, links, lists,
 // code, images, tables) is unwrapped back to plain text rather than
@@ -53,10 +51,17 @@ function randomBetween([min, max]: [number, number]): number {
 }
 
 export default function MentorPage() {
-  const params = useParams<{ id: string; indicatorId: string }>();
-  const { id: runId, indicatorId } = params;
+  const params = useParams<{ id: string; stepId: string }>();
+  const { id: runId, stepId } = params;
 
-  const [question, setQuestion] = useState<Question | null>(null);
+  // The plan's own copy of this step, used for the header before a chat
+  // exists (title/detail/indicator list). Only findable while this step is
+  // still part of the *current* plan version -- if the plan has since
+  // regenerated, this stays null and the header falls back to something
+  // generic, but the chat itself (if one already exists) still loads fine,
+  // since the mentor routes resolve a step by id regardless of which plan
+  // version it came from.
+  const [planStep, setPlanStep] = useState<PlanStep | null>(null);
   const [conversation, setConversation] = useState<MentorConversation | null>(null);
   const [needsSkillLevel, setNeedsSkillLevel] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,16 +70,19 @@ export default function MentorPage() {
     let cancelled = false;
     async function load() {
       try {
-        const questions = await api.getQuestions(ADAPTER_ID);
-        if (cancelled) return;
-        setQuestion(questions.find((q) => q.indicator_id === indicatorId) ?? null);
+        try {
+          const plan = await api.getPlan(runId);
+          if (!cancelled) setPlanStep(plan.steps.find((s) => s.id === stepId) ?? null);
+        } catch {
+          // Non-fatal -- the header just falls back to something generic.
+        }
 
         try {
-          const convo = await api.getMentorConversation(runId, indicatorId);
+          const convo = await api.getMentorConversation(runId, stepId);
           if (!cancelled) setConversation(convo);
         } catch (err) {
           if (cancelled) return;
-          // No conversation started yet for this indicator -- the normal
+          // No conversation started yet for this step -- the normal
           // first-visit case, not a real error. Anything else (e.g. the
           // run not being completed yet) is a real error to surface.
           if (err instanceof ApiError && err.status === 404) {
@@ -91,12 +99,12 @@ export default function MentorPage() {
     return () => {
       cancelled = true;
     };
-  }, [runId, indicatorId]);
+  }, [runId, stepId]);
 
   async function handleStart(skillLevel: SkillLevel) {
     setError(null);
     try {
-      const convo = await api.startMentorConversation(runId, indicatorId, skillLevel);
+      const convo = await api.startMentorConversation(runId, stepId, skillLevel);
       setConversation(convo);
       setNeedsSkillLevel(false);
     } catch (err) {
@@ -117,9 +125,12 @@ export default function MentorPage() {
     );
   }
 
-  if (!question || (!conversation && !needsSkillLevel)) {
+  if (!conversation && !needsSkillLevel) {
     return <LoadingState title="Opening the mentor…" />;
   }
+
+  const title = planStep?.title ?? "This step";
+  const indicators: PlanIndicatorRef[] = conversation?.indicators ?? planStep?.indicators ?? [];
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-6 py-10">
@@ -130,20 +141,30 @@ export default function MentorPage() {
         >
           ← Back to plan
         </Link>
-        <div className="flex items-center gap-2">
-          <PrincipleChip group={question.principle_group} />
-          <h1 className="font-heading text-xl font-semibold text-balance">{question.title}</h1>
-        </div>
+        <h1 className="font-heading text-xl font-semibold text-balance">{title}</h1>
+        {indicators.length > 0 && (
+          <ul className="flex flex-wrap gap-2">
+            {indicators.map((indicator) => (
+              <li
+                key={indicator.indicator_id}
+                className="flex items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-xs"
+              >
+                <PrincipleChip group={indicator.principle_group} />
+                {indicator.title}
+              </li>
+            ))}
+          </ul>
+        )}
         <p className="text-sm text-muted-foreground">
-          Talk through this one gap with a mentor -- it can update your answer for you once you confirm you&apos;ve
-          actually done it.
+          Talk this step through with a mentor -- it can update your answers for you once you confirm you&apos;ve
+          actually done something.
         </p>
       </div>
 
       {needsSkillLevel ? (
         <SkillLevelPicker onPick={handleStart} />
       ) : (
-        conversation && <ChatPanel runId={runId} indicatorId={indicatorId} initial={conversation} />
+        conversation && <ChatPanel runId={runId} stepId={stepId} initial={conversation} />
       )}
 
       <Button
@@ -177,15 +198,7 @@ function SkillLevelPicker({ onPick }: { onPick: (level: SkillLevel) => void }) {
   );
 }
 
-function ChatPanel({
-  runId,
-  indicatorId,
-  initial,
-}: {
-  runId: string;
-  indicatorId: string;
-  initial: MentorConversation;
-}) {
+function ChatPanel({ runId, stepId, initial }: { runId: string; stepId: string; initial: MentorConversation }) {
   const [messages, setMessages] = useState<MentorMessage[]>(initial.messages);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -205,7 +218,7 @@ function ChatPanel({
     setInput("");
     setMessages((prev) => [...prev, { role: "user", content, created_at: new Date().toISOString() }]);
     try {
-      const reply = await api.sendMentorMessage(runId, indicatorId, content);
+      const reply = await api.sendMentorMessage(runId, stepId, content);
       setMessages((prev) => [...prev, reply.mentor_message]);
       if (reply.action_taken) setLastAction(reply.action_taken);
     } catch (err) {
@@ -220,7 +233,7 @@ function ChatPanel({
       {lastAction && (
         <div className="rounded-md border-2 border-severity-pass/30 bg-severity-pass-soft p-3 text-sm text-severity-pass">
           <span className="font-semibold">Updated — </span>
-          your answer for this indicator changed and the assessment was rescored. New score:{" "}
+          your answer changed and the assessment was rescored. New score:{" "}
           <span className="font-semibold">{lastAction.new_score}/100</span>.
         </div>
       )}

@@ -20,6 +20,17 @@ class Question:
     options: list[dict]  # e.g. [{"value": "yes", "label": "Yes, clearly true"}, ...]
 
 
+@dataclass
+class MentorIndicatorContext:
+    """One indicator's worth of context for a mentor system prompt -- a plan
+    step can bundle several of these (issue #9), where a single-indicator
+    mentor prompt used to take just one."""
+
+    indicator: Indicator
+    severity: str
+    current_answer: Answer | None
+
+
 class Adapter(Protocol):
     """Every standard-specific adapter (fair, later omop) implements this.
     The API layer (app/api/*) is only allowed to depend on this Protocol and
@@ -50,12 +61,20 @@ class Adapter(Protocol):
         ...
 
     def render_mentor_system_prompt(
-        self, indicator: Indicator, subject_label: str, skill_level: str, severity: str, current_answer: Answer | None
+        self,
+        step_title: str,
+        step_detail: str,
+        indicators: list[MentorIndicatorContext],
+        subject_label: str,
+        skill_level: str,
     ) -> str:
-        """Build the system prompt for a mentor chat scoped to one indicator
-        (Checkpoint 9). The engine (app/engine/mentor.py) owns *how* the
-        conversation loop runs and how a confirmed-fix line in the model's
-        reply gets parsed and turned into a real answer update; the adapter
-        owns *what* grounds the mentor (this standard's own content/tone)
-        and how skill_level changes its explanations."""
+        """Build the system prompt for a mentor chat scoped to one
+        FAIRification plan step (Checkpoint 9 / issue #9) -- a step can
+        bundle several indicators, so the mentor is briefed on all of them
+        at once, not just one. The engine (app/engine/mentor.py) owns *how*
+        the conversation loop runs and how a confirmed-fix line in the
+        model's reply (naming which indicator it resolved) gets parsed and
+        turned into a real answer update; the adapter owns *what* grounds
+        the mentor (this standard's own content/tone) and how skill_level
+        changes its explanations."""
         ...

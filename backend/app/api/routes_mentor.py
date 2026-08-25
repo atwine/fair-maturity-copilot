@@ -1,9 +1,11 @@
-"""Checkpoint 9 POC: an over-the-shoulder mentor, scoped to one plan step's
-indicator at a time. Capability is deliberately "tool-using, not verifying"
-(docs/DECISIONS.md v19) -- confirming a fix in chat calls straight into the
-existing answer-update/rescore path (routes_answers.upsert_answer), the same
-machinery the report's "Update your answer" action already uses, rather than
-duplicating it or reaching out to check anything externally.
+"""Checkpoint 9 / issue #9: an over-the-shoulder mentor, scoped to one
+FAIRification plan step -- which can bundle several indicators -- rather
+than one indicator at a time. Capability is deliberately "tool-using, not
+verifying" (docs/DECISIONS.md v19) -- confirming a fix in chat calls
+straight into the existing answer-update/rescore path
+(routes_answers.upsert_answer), the same machinery the report's "Update
+your answer" action already uses, rather than duplicating it or reaching
+out to check anything externally.
 """
 
 from uuid import UUID
@@ -21,17 +23,30 @@ from app.api.schemas import (
     MentorMessageOut,
     MentorReplyOut,
     MentorStartRequest,
+    PlanIndicatorRefOut,
 )
 from app.db import get_session
 from app.engine.mentor import run_mentor_turn
-from app.engine.models import AssessmentRun, Answer, Finding, Indicator, MentorConversation, MentorMessage, Report
+from app.engine.models import (
+    Answer,
+    AssessmentRun,
+    Finding,
+    Indicator,
+    MentorConversation,
+    MentorMessage,
+    Plan,
+    PlanStep,
+    PlanStepIndicator,
+    Report,
+)
+from app.engine.ports import MentorIndicatorContext
 
 router = APIRouter(prefix="/assessments", tags=["mentor"])
 
 _VALID_SKILL_LEVELS = {"new_to_this", "done_this_before"}
 
 
-def _get_run_and_indicator(session: Session, run_id: UUID, indicator_id: str) -> tuple[AssessmentRun, Indicator]:
+def _get_run_and_step(session: Session, run_id: UUID, step_id: UUID) -> tuple[AssessmentRun, PlanStep, list[Indicator]]:
     run = session.get(AssessmentRun, run_id)
     if run is None:
         raise HTTPException(status_code=404, detail="Assessment not found")
@@ -39,34 +54,55 @@ def _get_run_and_indicator(session: Session, run_id: UUID, indicator_id: str) ->
         raise HTTPException(
             status_code=400, detail="The mentor is only available once an assessment is completed and reported."
         )
-    indicator = session.get(Indicator, indicator_id)
-    if indicator is None:
-        raise HTTPException(status_code=404, detail=f"Unknown indicator: {indicator_id!r}")
-    return run, indicator
+
+    step = session.get(PlanStep, step_id)
+    if step is None:
+        raise HTTPException(status_code=404, detail=f"Unknown plan step: {step_id}")
+    plan = session.get(Plan, step.plan_id)
+    if plan is None or plan.run_id != run_id:
+        raise HTTPException(status_code=404, detail="That plan step doesn't belong to this assessment")
+
+    links = session.exec(select(PlanStepIndicator).where(PlanStepIndicator.plan_step_id == step_id)).all()
+    indicators = session.exec(
+        select(Indicator).where(Indicator.id.in_({link.indicator_id for link in links}))
+    ).all()
+    if not indicators:
+        raise HTTPException(status_code=500, detail="This plan step has no indicators attached")
+
+    return run, step, list(indicators)
 
 
-def _get_conversation(session: Session, run_id: UUID, indicator_id: str) -> MentorConversation | None:
+def _get_conversation(session: Session, run_id: UUID, step_id: UUID) -> MentorConversation | None:
     return session.exec(
         select(MentorConversation).where(
-            MentorConversation.run_id == run_id, MentorConversation.indicator_id == indicator_id
+            MentorConversation.run_id == run_id, MentorConversation.plan_step_id == step_id
         )
     ).first()
 
 
-def _current_severity(session: Session, run_id: UUID, indicator_id: str) -> str:
-    finding = session.exec(
-        select(Finding).where(Finding.run_id == run_id, Finding.indicator_id == indicator_id)
-    ).first()
-    return finding.severity if finding is not None else "unknown"
+def _severity_by_indicator_id(session: Session, run_id: UUID, indicator_ids: set[str]) -> dict[str, str]:
+    findings = session.exec(
+        select(Finding).where(Finding.run_id == run_id, Finding.indicator_id.in_(indicator_ids))
+    ).all()
+    by_id = {f.indicator_id: f.severity for f in findings}
+    return {iid: by_id.get(iid, "unknown") for iid in indicator_ids}
 
 
-def _current_answer(session: Session, run_id: UUID, indicator_id: str) -> Answer | None:
-    """The user's existing answer for this indicator, if any -- passed into
-    the mentor's system prompt so it knows where they currently stand (value
-    + their own note), not just the derived severity label."""
-    return session.exec(
-        select(Answer).where(Answer.run_id == run_id, Answer.indicator_id == indicator_id)
-    ).first()
+def _answers_by_indicator_id(session: Session, run_id: UUID, indicator_ids: set[str]) -> dict[str, Answer]:
+    answers = session.exec(
+        select(Answer).where(Answer.run_id == run_id, Answer.indicator_id.in_(indicator_ids))
+    ).all()
+    return {a.indicator_id: a for a in answers}
+
+
+def _build_indicator_contexts(session: Session, run_id: UUID, indicators: list[Indicator]) -> list[MentorIndicatorContext]:
+    ids = {i.id for i in indicators}
+    severities = _severity_by_indicator_id(session, run_id, ids)
+    answers = _answers_by_indicator_id(session, run_id, ids)
+    return [
+        MentorIndicatorContext(indicator=i, severity=severities[i.id], current_answer=answers.get(i.id))
+        for i in indicators
+    ]
 
 
 def _label_for_value(run: AssessmentRun, indicator_id: str, value: str) -> str:
@@ -79,13 +115,20 @@ def _label_for_value(run: AssessmentRun, indicator_id: str, value: str) -> str:
     return value.replace("_", " ").capitalize()
 
 
-@router.post("/{run_id}/mentor/{indicator_id}/start", response_model=MentorConversationOut)
-def start_conversation(
-    run_id: UUID, indicator_id: str, body: MentorStartRequest, session: Session = Depends(get_session)
-) -> MentorConversationOut:
-    run, indicator = _get_run_and_indicator(session, run_id, indicator_id)
+def _indicator_refs_out(indicators: list[Indicator]) -> list[PlanIndicatorRefOut]:
+    return [
+        PlanIndicatorRefOut(indicator_id=i.id, title=i.title, principle_group=i.principle_group) for i in indicators
+    ]
 
-    existing = _get_conversation(session, run_id, indicator_id)
+
+@router.post("/{run_id}/mentor/step/{step_id}/start", response_model=MentorConversationOut)
+def start_conversation(
+    run_id: UUID, step_id: UUID, body: MentorStartRequest, session: Session = Depends(get_session)
+) -> MentorConversationOut:
+    run, step, indicators = _get_run_and_step(session, run_id, step_id)
+    indicator_refs = _indicator_refs_out(indicators)
+
+    existing = _get_conversation(session, run_id, step_id)
     if existing is not None:
         messages = session.exec(
             select(MentorMessage)
@@ -93,68 +136,71 @@ def start_conversation(
             .order_by(MentorMessage.created_at)
         ).all()
         return MentorConversationOut(
-            indicator_id=indicator_id,
+            step_id=step_id,
             skill_level=existing.skill_level,
+            indicators=indicator_refs,
             messages=[MentorMessageOut(role=m.role, content=m.content, created_at=m.created_at) for m in messages],
         )
 
     if body.skill_level not in _VALID_SKILL_LEVELS:
         raise HTTPException(status_code=422, detail=f"skill_level must be one of {sorted(_VALID_SKILL_LEVELS)}")
 
-    conversation = MentorConversation(run_id=run_id, indicator_id=indicator_id, skill_level=body.skill_level)
+    conversation = MentorConversation(run_id=run_id, plan_step_id=step_id, skill_level=body.skill_level)
     session.add(conversation)
     session.commit()
     session.refresh(conversation)
 
     adapter = get_adapter(run.adapter_id)
-    severity = _current_severity(session, run_id, indicator_id)
-    current_answer = _current_answer(session, run_id, indicator_id)
+    contexts = _build_indicator_contexts(session, run_id, indicators)
     system_prompt = adapter.render_mentor_system_prompt(
-        indicator=indicator,
+        step_title=step.title,
+        step_detail=step.detail,
+        indicators=contexts,
         subject_label=run.subject_label,
         skill_level=body.skill_level,
-        severity=severity,
-        current_answer=current_answer,
     )
     opening_text, _ = run_mentor_turn(
         system_prompt=system_prompt,
         history=[],
-        user_text="(The person just opened this chat. Greet them briefly and invite them to describe where they are with this indicator.)",
+        user_text="(The person just opened this chat. Greet them briefly and invite them to describe where they are.)",
+        valid_indicator_ids={i.id for i in indicators},
     )
     opening_message = MentorMessage(conversation_id=conversation.id, role="mentor", content=opening_text)
     session.add(opening_message)
     session.commit()
 
     return MentorConversationOut(
-        indicator_id=indicator_id,
+        step_id=step_id,
         skill_level=conversation.skill_level,
+        indicators=indicator_refs,
         messages=[MentorMessageOut(role="mentor", content=opening_text, created_at=opening_message.created_at)],
     )
 
 
-@router.get("/{run_id}/mentor/{indicator_id}", response_model=MentorConversationOut)
-def get_conversation(run_id: UUID, indicator_id: str, session: Session = Depends(get_session)) -> MentorConversationOut:
-    _get_run_and_indicator(session, run_id, indicator_id)
-    conversation = _get_conversation(session, run_id, indicator_id)
+@router.get("/{run_id}/mentor/step/{step_id}", response_model=MentorConversationOut)
+def get_conversation(run_id: UUID, step_id: UUID, session: Session = Depends(get_session)) -> MentorConversationOut:
+    _, _, indicators = _get_run_and_step(session, run_id, step_id)
+    conversation = _get_conversation(session, run_id, step_id)
     if conversation is None:
-        raise HTTPException(status_code=404, detail="No mentor conversation started yet for this indicator")
+        raise HTTPException(status_code=404, detail="No mentor conversation started yet for this step")
 
     messages = session.exec(
         select(MentorMessage).where(MentorMessage.conversation_id == conversation.id).order_by(MentorMessage.created_at)
     ).all()
     return MentorConversationOut(
-        indicator_id=indicator_id,
+        step_id=step_id,
         skill_level=conversation.skill_level,
+        indicators=_indicator_refs_out(indicators),
         messages=[MentorMessageOut(role=m.role, content=m.content, created_at=m.created_at) for m in messages],
     )
 
 
-@router.post("/{run_id}/mentor/{indicator_id}/messages", response_model=MentorReplyOut)
+@router.post("/{run_id}/mentor/step/{step_id}/messages", response_model=MentorReplyOut)
 def send_message(
-    run_id: UUID, indicator_id: str, body: MentorMessageIn, session: Session = Depends(get_session)
+    run_id: UUID, step_id: UUID, body: MentorMessageIn, session: Session = Depends(get_session)
 ) -> MentorReplyOut:
-    run, indicator = _get_run_and_indicator(session, run_id, indicator_id)
-    conversation = _get_conversation(session, run_id, indicator_id)
+    run, step, indicators = _get_run_and_step(session, run_id, step_id)
+    conversation = _get_conversation(session, run_id, step_id)
     if conversation is None:
         raise HTTPException(status_code=404, detail="Start a mentor conversation before sending messages")
 
@@ -167,16 +213,20 @@ def send_message(
     session.commit()
 
     adapter = get_adapter(run.adapter_id)
-    severity = _current_severity(session, run_id, indicator_id)
-    current_answer = _current_answer(session, run_id, indicator_id)
+    contexts = _build_indicator_contexts(session, run_id, indicators)
     system_prompt = adapter.render_mentor_system_prompt(
-        indicator=indicator,
+        step_title=step.title,
+        step_detail=step.detail,
+        indicators=contexts,
         subject_label=run.subject_label,
         skill_level=conversation.skill_level,
-        severity=severity,
-        current_answer=current_answer,
     )
-    display_text, action = run_mentor_turn(system_prompt=system_prompt, history=history, user_text=body.content)
+    display_text, action = run_mentor_turn(
+        system_prompt=system_prompt,
+        history=history,
+        user_text=body.content,
+        valid_indicator_ids={i.id for i in indicators},
+    )
 
     mentor_message = MentorMessage(conversation_id=conversation.id, role="mentor", content=display_text)
     session.add(mentor_message)
@@ -187,19 +237,23 @@ def send_message(
 
     action_out: MentorActionOut | None = None
     if action is not None:
-        label = _label_for_value(run, indicator_id, action.value)
+        label = _label_for_value(run, action.indicator_id, action.value)
         # Reuses the exact machinery routes_answers.py's PUT endpoint already
         # uses for a revisit from the report -- this is the "tool-using"
         # capability from docs/DECISIONS.md v19, not a duplicated code path.
-        upsert_answer(run_id, indicator_id, AnswerIn(value=action.value, label=label, note=action.note), session)
+        # This also flips AssessmentRun.plan_stale back to True (see
+        # routes_report.py's _rescore_finding_and_refresh_report), so the
+        # plan regenerates on its next visit -- this chat's own step_id
+        # stays valid regardless, since old plan versions are never deleted.
+        upsert_answer(run_id, action.indicator_id, AnswerIn(value=action.value, label=label, note=action.note), session)
 
         new_finding = session.exec(
-            select(Finding).where(Finding.run_id == run_id, Finding.indicator_id == indicator_id)
+            select(Finding).where(Finding.run_id == run_id, Finding.indicator_id == action.indicator_id)
         ).first()
         report = session.exec(select(Report).where(Report.run_id == run_id)).first()
         if new_finding is not None and report is not None:
             action_out = MentorActionOut(
-                indicator_id=indicator_id,
+                indicator_id=action.indicator_id,
                 new_value=action.value,
                 new_severity=new_finding.severity,
                 new_score=report.summary_score,

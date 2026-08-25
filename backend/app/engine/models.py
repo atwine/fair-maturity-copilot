@@ -47,6 +47,12 @@ class AssessmentRun(SQLModel, table=True):
     status: str = Field(default="in_progress")  # "in_progress" | "completed"
     created_at: datetime = Field(default_factory=_utcnow)
     completed_at: datetime | None = None
+    # True until a Plan is saved for this run; flipped back to True the
+    # moment an answer changes on a completed run (see
+    # routes_answers.py -> _rescore_finding_and_refresh_report, which does
+    # the same for the report). GET /plan checks this to decide whether the
+    # latest saved Plan is still good or needs a fresh one.
+    plan_stale: bool = Field(default=True)
 
 
 class Answer(SQLModel, table=True):
@@ -93,19 +99,52 @@ class Report(SQLModel, table=True):
     rendered_markdown: str
 
 
-class MentorConversation(SQLModel, table=True):
-    """One chat session, scoped to a single (run, indicator) pair -- e.g.
-    one FAIRification plan step's indicator, not the whole assessment. Reuses
-    the same (run_id, indicator_id) scoping Answer/Finding already use, so
-    a conversation is addressable the same way a revisit link already is.
-    skill_level is a one-time, explicit toggle (never inferred) set when the
-    conversation starts -- see Checkpoint 9 scoping in docs/DECISIONS.md v19."""
-
-    __table_args__ = (UniqueConstraint("run_id", "indicator_id", name="uq_mentorconversation_run_indicator"),)
+class Plan(SQLModel, table=True):
+    """A saved FAIRification plan (issue #9 / docs/DECISIONS.md). Not unique
+    on run_id -- a run can have several versions over time, oldest to
+    newest. Regenerating never deletes an older version: a MentorConversation
+    can be scoped to a PlanStep from an older Plan, and deleting that step
+    out from under it would break the conversation's foreign key. Old
+    versions are cheap (a handful of text rows) and simply ignored once a
+    newer one exists -- GET /plan always serves the most recent."""
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     run_id: UUID = Field(foreign_key="assessmentrun.id")
+    goal: str
+    generated_at: datetime = Field(default_factory=_utcnow)
+
+
+class PlanStep(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    plan_id: UUID = Field(foreign_key="plan.id")
+    display_order: int
+    title: str
+    detail: str
+
+
+class PlanStepIndicator(SQLModel, table=True):
+    """Join table -- a step can cover more than one indicator, which is the
+    whole reason this issue exists (a mentor chat should be scoped to the
+    step, not to one indicator inside it)."""
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    plan_step_id: UUID = Field(foreign_key="planstep.id")
     indicator_id: str = Field(foreign_key="indicator.id")
+
+
+class MentorConversation(SQLModel, table=True):
+    """One chat session, scoped to a single (run, plan step) pair -- a step
+    can bundle several indicators, and the whole point of this scoping is
+    one conversation covers all of them together, not one chat per
+    indicator. skill_level is a one-time, explicit toggle (never inferred)
+    set when the conversation starts -- see Checkpoint 9 scoping in
+    docs/DECISIONS.md v19."""
+
+    __table_args__ = (UniqueConstraint("run_id", "plan_step_id", name="uq_mentorconversation_run_planstep"),)
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    run_id: UUID = Field(foreign_key="assessmentrun.id")
+    plan_step_id: UUID = Field(foreign_key="planstep.id")
     skill_level: str  # "new_to_this" | "done_this_before"
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)

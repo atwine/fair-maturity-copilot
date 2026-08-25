@@ -9,7 +9,7 @@ from app.adapters.fair.prompt import PROMPT_VERSION
 from app.adapters.fair.prompt import render_remediation_prompt as _render_remediation_prompt
 from app.adapters.fair.scoring_rubric import severity_for_answer
 from app.engine.models import Answer, Finding, Indicator
-from app.engine.ports import Question
+from app.engine.ports import MentorIndicatorContext, Question
 from app.engine.scoring import priority_weight_for
 
 
@@ -46,12 +46,17 @@ class FairAdapter:
         )
 
     def render_mentor_system_prompt(
-        self, indicator: Indicator, subject_label: str, skill_level: str, severity: str, current_answer: Answer | None
+        self,
+        step_title: str,
+        step_detail: str,
+        indicators: list[MentorIndicatorContext],
+        subject_label: str,
+        skill_level: str,
     ) -> str:
         return _render_mentor_system_prompt(
-            indicator=indicator,
+            step_title=step_title,
+            step_detail=step_detail,
+            indicators=indicators,
             subject_label=subject_label,
             skill_level=skill_level,
-            severity=severity,
-            current_answer=current_answer,
         )

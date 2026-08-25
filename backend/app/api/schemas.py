@@ -73,6 +73,7 @@ class PlanIndicatorRefOut(BaseModel):
 
 
 class PlanStepOut(BaseModel):
+    id: UUID  # stable across visits once saved -- what a mentor chat is scoped to (issue #9)
     title: str
     detail: str
     indicators: list[PlanIndicatorRefOut]
@@ -99,8 +100,9 @@ class MentorMessageOut(BaseModel):
 
 
 class MentorConversationOut(BaseModel):
-    indicator_id: str
+    step_id: UUID
     skill_level: str
+    indicators: list[PlanIndicatorRefOut]  # what this step (and so this chat) covers
     messages: list[MentorMessageOut]
 
 

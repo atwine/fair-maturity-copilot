@@ -46,8 +46,12 @@ class FairAdapter:
         )
 
     def render_mentor_system_prompt(
-        self, indicator: Indicator, subject_label: str, skill_level: str, severity: str
+        self, indicator: Indicator, subject_label: str, skill_level: str, severity: str, current_answer: Answer | None
     ) -> str:
         return _render_mentor_system_prompt(
-            indicator=indicator, subject_label=subject_label, skill_level=skill_level, severity=severity
+            indicator=indicator,
+            subject_label=subject_label,
+            skill_level=skill_level,
+            severity=severity,
+            current_answer=current_answer,
         )

@@ -24,7 +24,7 @@ from app.api.schemas import (
 )
 from app.db import get_session
 from app.engine.mentor import run_mentor_turn
-from app.engine.models import AssessmentRun, Finding, Indicator, MentorConversation, MentorMessage, Report
+from app.engine.models import AssessmentRun, Answer, Finding, Indicator, MentorConversation, MentorMessage, Report
 
 router = APIRouter(prefix="/assessments", tags=["mentor"])
 
@@ -58,6 +58,15 @@ def _current_severity(session: Session, run_id: UUID, indicator_id: str) -> str:
         select(Finding).where(Finding.run_id == run_id, Finding.indicator_id == indicator_id)
     ).first()
     return finding.severity if finding is not None else "unknown"
+
+
+def _current_answer(session: Session, run_id: UUID, indicator_id: str) -> Answer | None:
+    """The user's existing answer for this indicator, if any -- passed into
+    the mentor's system prompt so it knows where they currently stand (value
+    + their own note), not just the derived severity label."""
+    return session.exec(
+        select(Answer).where(Answer.run_id == run_id, Answer.indicator_id == indicator_id)
+    ).first()
 
 
 def _label_for_value(run: AssessmentRun, indicator_id: str, value: str) -> str:
@@ -99,8 +108,13 @@ def start_conversation(
 
     adapter = get_adapter(run.adapter_id)
     severity = _current_severity(session, run_id, indicator_id)
+    current_answer = _current_answer(session, run_id, indicator_id)
     system_prompt = adapter.render_mentor_system_prompt(
-        indicator=indicator, subject_label=run.subject_label, skill_level=body.skill_level, severity=severity
+        indicator=indicator,
+        subject_label=run.subject_label,
+        skill_level=body.skill_level,
+        severity=severity,
+        current_answer=current_answer,
     )
     opening_text, _ = run_mentor_turn(
         system_prompt=system_prompt,
@@ -154,8 +168,13 @@ def send_message(
 
     adapter = get_adapter(run.adapter_id)
     severity = _current_severity(session, run_id, indicator_id)
+    current_answer = _current_answer(session, run_id, indicator_id)
     system_prompt = adapter.render_mentor_system_prompt(
-        indicator=indicator, subject_label=run.subject_label, skill_level=conversation.skill_level, severity=severity
+        indicator=indicator,
+        subject_label=run.subject_label,
+        skill_level=conversation.skill_level,
+        severity=severity,
+        current_answer=current_answer,
     )
     display_text, action = run_mentor_turn(system_prompt=system_prompt, history=history, user_text=body.content)
 

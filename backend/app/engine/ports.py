@@ -50,7 +50,7 @@ class Adapter(Protocol):
         ...
 
     def render_mentor_system_prompt(
-        self, indicator: Indicator, subject_label: str, skill_level: str, severity: str
+        self, indicator: Indicator, subject_label: str, skill_level: str, severity: str, current_answer: Answer | None
     ) -> str:
         """Build the system prompt for a mentor chat scoped to one indicator
         (Checkpoint 9). The engine (app/engine/mentor.py) owns *how* the

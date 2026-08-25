@@ -2,7 +2,18 @@
 // No caching/retry layer yet -- add one if/when a real usage pattern
 // actually needs it, not preemptively.
 
-import type { Assessment, AnswerIn, AnswerOut, Finding, Plan, Question, Report } from "./types";
+import type {
+  Assessment,
+  AnswerIn,
+  AnswerOut,
+  Finding,
+  MentorConversation,
+  MentorReply,
+  Plan,
+  Question,
+  Report,
+  SkillLevel,
+} from "./types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -59,6 +70,24 @@ export const api = {
     request<Finding>(`/assessments/${runId}/findings/${indicatorId}/regenerate`, { method: "POST" }),
 
   getPlan: (runId: string) => request<Plan>(`/assessments/${runId}/plan`),
+
+  // Checkpoint 9 POC: the mentor is scoped to one (run, indicator) pair --
+  // see docs/DECISIONS.md v19. getMentorConversation 404s (via ApiError)
+  // if no conversation has been started yet for that indicator.
+  getMentorConversation: (runId: string, indicatorId: string) =>
+    request<MentorConversation>(`/assessments/${runId}/mentor/${indicatorId}`),
+
+  startMentorConversation: (runId: string, indicatorId: string, skillLevel: SkillLevel) =>
+    request<MentorConversation>(`/assessments/${runId}/mentor/${indicatorId}/start`, {
+      method: "POST",
+      body: JSON.stringify({ skill_level: skillLevel }),
+    }),
+
+  sendMentorMessage: (runId: string, indicatorId: string, content: string) =>
+    request<MentorReply>(`/assessments/${runId}/mentor/${indicatorId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    }),
 };
 
 export { ApiError };

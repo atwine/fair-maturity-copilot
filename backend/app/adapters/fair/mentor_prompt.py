@@ -11,7 +11,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
-from app.engine.models import Indicator
+from app.engine.models import Answer, Indicator
 
 _PROMPT_DIR = Path(__file__).parent / "prompts"
 _env = Environment(loader=FileSystemLoader(str(_PROMPT_DIR)), trim_blocks=True, lstrip_blocks=True)
@@ -22,7 +22,14 @@ MENTOR_PROMPT_VERSION = "fair-mentor-v1"
 _VALID_SKILL_LEVELS = {"new_to_this", "done_this_before"}
 
 
-def render_mentor_system_prompt(*, indicator: Indicator, subject_label: str, skill_level: str, severity: str) -> str:
+def render_mentor_system_prompt(
+    *,
+    indicator: Indicator,
+    subject_label: str,
+    skill_level: str,
+    severity: str,
+    current_answer: Answer | None,
+) -> str:
     if skill_level not in _VALID_SKILL_LEVELS:
         raise ValueError(f"skill_level must be one of {sorted(_VALID_SKILL_LEVELS)}, got {skill_level!r}")
     return _template.render(
@@ -30,4 +37,5 @@ def render_mentor_system_prompt(*, indicator: Indicator, subject_label: str, ski
         indicator=indicator,
         skill_level=skill_level,
         severity_label=severity.replace("_", " "),
+        current_answer=current_answer,
     )

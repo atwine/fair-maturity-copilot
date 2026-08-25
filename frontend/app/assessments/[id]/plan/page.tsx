@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingState } from "@/components/loading-state";
@@ -84,13 +85,21 @@ export default function PlanPage() {
                   </div>
                   <ul className="flex flex-wrap gap-2 pl-9">
                     {step.indicators.map((indicator) => (
-                      <li key={indicator.indicator_id}>
+                      <li key={indicator.indicator_id} className="flex items-center gap-1">
                         <Link
                           href={`/assessments/${runId}/question/${indicator.indicator_id}?from=plan`}
                           className="flex items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-xs hover:border-primary"
                         >
                           <PrincipleChip group={indicator.principle_group} />
                           {indicator.title}
+                        </Link>
+                        <Link
+                          href={`/assessments/${runId}/mentor/${indicator.indicator_id}`}
+                          title="Talk this through with the mentor"
+                          aria-label={`Talk through "${indicator.title}" with the mentor`}
+                          className="flex size-7 items-center justify-center rounded-full border bg-card text-muted-foreground hover:border-primary hover:text-primary"
+                        >
+                          <MessageCircle className="size-3.5" />
                         </Link>
                       </li>
                     ))}

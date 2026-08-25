@@ -91,3 +91,29 @@ class Report(SQLModel, table=True):
     generated_at: datetime = Field(default_factory=_utcnow)
     summary_score: float
     rendered_markdown: str
+
+
+class MentorConversation(SQLModel, table=True):
+    """One chat session, scoped to a single (run, indicator) pair -- e.g.
+    one FAIRification plan step's indicator, not the whole assessment. Reuses
+    the same (run_id, indicator_id) scoping Answer/Finding already use, so
+    a conversation is addressable the same way a revisit link already is.
+    skill_level is a one-time, explicit toggle (never inferred) set when the
+    conversation starts -- see Checkpoint 9 scoping in docs/DECISIONS.md v19."""
+
+    __table_args__ = (UniqueConstraint("run_id", "indicator_id", name="uq_mentorconversation_run_indicator"),)
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    run_id: UUID = Field(foreign_key="assessmentrun.id")
+    indicator_id: str = Field(foreign_key="indicator.id")
+    skill_level: str  # "new_to_this" | "done_this_before"
+    created_at: datetime = Field(default_factory=_utcnow)
+    updated_at: datetime = Field(default_factory=_utcnow)
+
+
+class MentorMessage(SQLModel, table=True):
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    conversation_id: UUID = Field(foreign_key="mentorconversation.id")
+    role: str  # "user" | "mentor"
+    content: str
+    created_at: datetime = Field(default_factory=_utcnow)

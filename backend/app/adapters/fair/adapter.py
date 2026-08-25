@@ -4,6 +4,7 @@ content.py/scoring_rubric.py — this class is just the glue that satisfies
 the engine's Adapter Protocol."""
 
 from app.adapters.fair.content import load_indicators, load_options_by_indicator_id
+from app.adapters.fair.mentor_prompt import render_mentor_system_prompt as _render_mentor_system_prompt
 from app.adapters.fair.prompt import PROMPT_VERSION
 from app.adapters.fair.prompt import render_remediation_prompt as _render_remediation_prompt
 from app.adapters.fair.scoring_rubric import severity_for_answer
@@ -42,4 +43,11 @@ class FairAdapter:
     ) -> str:
         return _render_remediation_prompt(
             indicator=indicator, answer=answer, subject_label=subject_label, severity=severity
+        )
+
+    def render_mentor_system_prompt(
+        self, indicator: Indicator, subject_label: str, skill_level: str, severity: str
+    ) -> str:
+        return _render_mentor_system_prompt(
+            indicator=indicator, subject_label=subject_label, skill_level=skill_level, severity=severity
         )

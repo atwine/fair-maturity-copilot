@@ -82,3 +82,35 @@ class PlanOut(BaseModel):
     run_id: UUID
     goal: str
     steps: list[PlanStepOut]
+
+
+class MentorStartRequest(BaseModel):
+    skill_level: str  # "new_to_this" | "done_this_before" -- explicit, never inferred
+
+
+class MentorMessageIn(BaseModel):
+    content: str
+
+
+class MentorMessageOut(BaseModel):
+    role: str  # "user" | "mentor"
+    content: str
+    created_at: datetime
+
+
+class MentorConversationOut(BaseModel):
+    indicator_id: str
+    skill_level: str
+    messages: list[MentorMessageOut]
+
+
+class MentorActionOut(BaseModel):
+    indicator_id: str
+    new_value: str  # "yes" | "partial" | "no"
+    new_severity: str
+    new_score: float
+
+
+class MentorReplyOut(BaseModel):
+    mentor_message: MentorMessageOut
+    action_taken: MentorActionOut | None

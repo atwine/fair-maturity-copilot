@@ -133,11 +133,22 @@ def _latest_remediation_by_finding_id(session: Session, finding_ids: list) -> di
 
 def _rescore_finding_and_refresh_report(session: Session, run: AssessmentRun, indicator_id: str, answer: Answer) -> None:
     """Called from routes_answers.py when someone revisits and changes an
-    answer on a run that's already completed and reported. Keeps the report
-    honest without a full 12-call regeneration: re-scores and re-writes
-    remediation for just the one indicator that changed, then recomputes the
-    cached score from all current findings. A no-op if no Report exists yet
-    for this run (nothing cached to go stale)."""
+    answer on a run that's already completed and reported. Marks any saved
+    plan stale unconditionally (cheap, and always correct to do). Keeps the
+    report honest without a full 12-call regeneration: re-scores and
+    re-writes remediation for just the one indicator that changed, then
+    recomputes the cached score from all current findings -- but that part
+    is a no-op if no Report exists yet for this run (nothing cached to go
+    stale there)."""
+    # A revisited answer can change which findings are open, so any saved
+    # FAIRification plan (routes_plan.py) is now potentially out of date too
+    # -- not patched in place (that's a full re-synthesis, not a one-field
+    # edit like the report), just flagged so the next GET /plan regenerates
+    # a fresh version instead of serving the stale one.
+    run.plan_stale = True
+    session.add(run)
+    session.commit()
+
     report = session.exec(select(Report).where(Report.run_id == run.id)).first()
     if report is None:
         return

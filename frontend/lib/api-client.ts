@@ -71,20 +71,21 @@ export const api = {
 
   getPlan: (runId: string) => request<Plan>(`/assessments/${runId}/plan`),
 
-  // Checkpoint 9 POC: the mentor is scoped to one (run, indicator) pair --
-  // see docs/DECISIONS.md v19. getMentorConversation 404s (via ApiError)
-  // if no conversation has been started yet for that indicator.
-  getMentorConversation: (runId: string, indicatorId: string) =>
-    request<MentorConversation>(`/assessments/${runId}/mentor/${indicatorId}`),
+  // Checkpoint 9 / issue #9: the mentor is scoped to one saved FAIRification
+  // plan step -- which can bundle several indicators -- not one indicator at
+  // a time (see docs/DECISIONS.md v19/v22). getMentorConversation 404s (via
+  // ApiError) if no conversation has been started yet for that step.
+  getMentorConversation: (runId: string, stepId: string) =>
+    request<MentorConversation>(`/assessments/${runId}/mentor/step/${stepId}`),
 
-  startMentorConversation: (runId: string, indicatorId: string, skillLevel: SkillLevel) =>
-    request<MentorConversation>(`/assessments/${runId}/mentor/${indicatorId}/start`, {
+  startMentorConversation: (runId: string, stepId: string, skillLevel: SkillLevel) =>
+    request<MentorConversation>(`/assessments/${runId}/mentor/step/${stepId}/start`, {
       method: "POST",
       body: JSON.stringify({ skill_level: skillLevel }),
     }),
 
-  sendMentorMessage: (runId: string, indicatorId: string, content: string) =>
-    request<MentorReply>(`/assessments/${runId}/mentor/${indicatorId}/messages`, {
+  sendMentorMessage: (runId: string, stepId: string, content: string) =>
+    request<MentorReply>(`/assessments/${runId}/mentor/step/${stepId}/messages`, {
       method: "POST",
       body: JSON.stringify({ content }),
     }),

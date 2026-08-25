@@ -68,10 +68,10 @@ Most tests (`tests/engine/`, `tests/adapters/fair/`) need no database or LLM con
 | POST | `/assessments/{id}/complete` | Mark a run complete — fails if any indicator is unanswered |
 | GET | `/assessments/{id}/report` | Generate (once) or fetch the cached report — plain-language findings + score |
 | POST | `/assessments/{id}/findings/{indicator_id}/regenerate` | Force one finding's remediation to be redone |
-| GET | `/assessments/{id}/plan` | Synthesize an ordered FAIRification plan from all of a run's open findings (one LLM call, not cached) |
-| POST | `/assessments/{id}/mentor/{indicator_id}/start` | Start a mentor conversation for one indicator (with a skill-level toggle: "new to this" / "done this before"); generates an opening greeting |
-| GET | `/assessments/{id}/mentor/{indicator_id}` | Fetch an existing mentor conversation's message history |
-| POST | `/assessments/{id}/mentor/{indicator_id}/messages` | Send a user message to the mentor and get a reply; if the message describes a completed fix, the mentor updates the answer via the existing rescore path |
+| GET | `/assessments/{id}/plan` | Synthesize an ordered FAIRification plan from all of a run's open findings — generated once and cached like the report, until a revisited answer marks it stale |
+| POST | `/assessments/{id}/mentor/step/{step_id}/start` | Start a mentor conversation for one plan step (which can bundle several indicators, all covered in one chat), with a skill-level toggle: "new to this" / "done this before"; generates an opening greeting |
+| GET | `/assessments/{id}/mentor/step/{step_id}` | Fetch an existing mentor conversation's message history |
+| POST | `/assessments/{id}/mentor/step/{step_id}/messages` | Send a user message to the mentor and get a reply; if the message describes a completed fix for one of the step's indicators, the mentor updates that answer via the existing rescore path |
 
 Answers can also be edited after an assessment is completed (`PUT /assessments/{id}/answers/{indicator_id}`) — this is how "revisiting" a finding from the report works: it re-scores that one indicator, regenerates its remediation, and refreshes the report's cached score.
 
@@ -116,7 +116,7 @@ backend/
   tests/                 — engine boundary, FAIR adapter, remediation/plan grounding, fixture checks
   .env.example          — required env vars, including both LLM provider presets
 frontend/
-  app/                   — new, question/[indicatorId] (also used to revisit a finding), review, report, plan, mentor/[indicatorId], about
+  app/                   — new, question/[indicatorId] (also used to revisit a finding), review, report, plan, mentor/[stepId], about
   lib/                   — api-client.ts + types.ts, mirroring the backend's REST contract
 docs/
   PLANNING_PROMPT.md    — the Plan Mode prompt that produced the v0 build plan

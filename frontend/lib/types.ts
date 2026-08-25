@@ -71,6 +71,7 @@ export interface PlanIndicatorRef {
 }
 
 export interface PlanStep {
+  id: string;
   title: string;
   detail: string;
   indicators: PlanIndicatorRef[];
@@ -91,8 +92,9 @@ export interface MentorMessage {
 }
 
 export interface MentorConversation {
-  indicator_id: string;
+  step_id: string;
   skill_level: SkillLevel;
+  indicators: PlanIndicatorRef[];
   messages: MentorMessage[];
 }
 

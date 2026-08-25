@@ -71,35 +71,37 @@ export default function PlanPage() {
       ) : (
         <ol className="space-y-5">
           {plan.steps.map((step, i) => (
-            <li key={step.title}>
+            <li key={step.id}>
               <Card>
                 <CardContent className="space-y-3 pt-6">
-                  <div className="flex items-start gap-3">
-                    <span className="font-heading text-2xl leading-none font-semibold text-primary tabular-nums">
-                      {i + 1}
-                    </span>
-                    <div className="space-y-1.5">
-                      <h2 className="font-heading text-lg font-semibold">{step.title}</h2>
-                      <p className="text-base leading-relaxed">{step.detail}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <span className="font-heading text-2xl leading-none font-semibold text-primary tabular-nums">
+                        {i + 1}
+                      </span>
+                      <div className="space-y-1.5">
+                        <h2 className="font-heading text-lg font-semibold">{step.title}</h2>
+                        <p className="text-base leading-relaxed">{step.detail}</p>
+                      </div>
                     </div>
+                    <Link
+                      href={`/assessments/${runId}/mentor/${step.id}`}
+                      title="Talk this whole step through with the mentor"
+                      aria-label={`Talk through "${step.title}" with the mentor`}
+                      className="flex size-8 shrink-0 items-center justify-center rounded-full border bg-card text-muted-foreground hover:border-primary hover:text-primary"
+                    >
+                      <MessageCircle className="size-4" />
+                    </Link>
                   </div>
                   <ul className="flex flex-wrap gap-2 pl-9">
                     {step.indicators.map((indicator) => (
-                      <li key={indicator.indicator_id} className="flex items-center gap-1">
+                      <li key={indicator.indicator_id}>
                         <Link
                           href={`/assessments/${runId}/question/${indicator.indicator_id}?from=plan`}
                           className="flex items-center gap-1.5 rounded-full border bg-card px-2.5 py-1 text-xs hover:border-primary"
                         >
                           <PrincipleChip group={indicator.principle_group} />
                           {indicator.title}
-                        </Link>
-                        <Link
-                          href={`/assessments/${runId}/mentor/${indicator.indicator_id}`}
-                          title="Talk this through with the mentor"
-                          aria-label={`Talk through "${indicator.title}" with the mentor`}
-                          className="flex size-7 items-center justify-center rounded-full border bg-card text-muted-foreground hover:border-primary hover:text-primary"
-                        >
-                          <MessageCircle className="size-3.5" />
                         </Link>
                       </li>
                     ))}

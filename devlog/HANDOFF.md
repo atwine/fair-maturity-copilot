@@ -354,3 +354,31 @@ Two smaller notes that didn't warrant their own issue got pinned as comments ins
 **Servers shut down** at the end of this session — nothing left running locally.
 
 **Open questions carried forward:** same as above (promotion cadence, Neon production scale-to-zero plan decision) — plus, when Devin or the next session picks up any of the 4 checkpoint issues, remember the standing branching rule this project keeps slipping on: check `git branch --show-current` before editing anything, work on a `feature/<name>` branch off `development`, never push directly to `main`/`staging` without a PR and the project owner's explicit go-ahead to merge.
+
+---
+
+## 2026-08-25 — Final pre-pause check: README badges, CHANGELOG gap closed, logo issue filed, coverage audit
+
+**Prompted by the project owner asking to double-check that everything was actually covered** before stepping away — this pass caught two real gaps and closed them:
+
+1. **`CHANGELOG.md` had no entry for the Neon-provisioning work** — the merge to `development` (see entry above) never made it into the changelog, even though every other shipped feature in this project has an entry there. Added under `### Added` in `[Unreleased]`.
+2. **Three deferred mentor-POC items had no tracking issue** — RAG, external verification, and adjustable-ambition content were mentioned as out-of-scope inside issue #5 but weren't independently trackable. Filed as [#7](https://github.com/atwine/fair-maturity-copilot/issues/7), explicitly blocked on #5 so it isn't picked up before the mentor POC has real reviewer feedback to justify any of the three.
+
+**New from this pass:**
+- **README badges** — added a row of shields.io badges (Python, TypeScript, FastAPI, Next.js, Postgres/Neon, status, license) under the title, per the project owner's explicit ask for "tags on the language and those kinds of things."
+- **[#8 — Design a logo](https://github.com/atwine/fair-maturity-copilot/issues/8)** — filed at the project owner's request, parked for later. Points whoever picks it up at the existing visual identity (warm paper/teal/gold palette, Fraunces+Geist type, the `FairSpectrum` F/A/I/R segmented-bar component) as the natural starting point rather than inventing an unrelated mark from scratch.
+
+**Full open-issue inventory at this pause** (8 issues, all self-contained):
+| # | What | Depends on |
+|---|---|---|
+| [#2](https://github.com/atwine/fair-maturity-copilot/issues/2) | Checkpoint 6 — eval harness | — |
+| [#3](https://github.com/atwine/fair-maturity-copilot/issues/3) | Checkpoint 7 — deploy + dogfood | — |
+| [#4](https://github.com/atwine/fair-maturity-copilot/issues/4) | Checkpoint 8 — real ACE pilot | #3 |
+| [#5](https://github.com/atwine/fair-maturity-copilot/issues/5) | Checkpoint 9 — mentor POC | — |
+| [#6](https://github.com/atwine/fair-maturity-copilot/issues/6) | Backlog — repository recommendations | — |
+| [#7](https://github.com/atwine/fair-maturity-copilot/issues/7) | Future — RAG/verification/adjustable ambition | #5 |
+| [#8](https://github.com/atwine/fair-maturity-copilot/issues/8) | Design a logo | — |
+
+**This work is on `feature/readme-badges-and-changelog`, merged into `development` and pushed as part of this same pause.** Nothing else is uncommitted; no servers running.
+
+**Open questions carried forward:** unchanged from the entry above (promotion cadence, Neon production scale-to-zero plan decision) — this was a documentation/audit pass only, no code changed.

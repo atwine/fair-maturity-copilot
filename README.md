@@ -1,5 +1,13 @@
 # fair-maturity-copilot
 
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-005571?logo=fastapi&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
+![Postgres (Neon)](https://img.shields.io/badge/Postgres-Neon-00E599?logo=postgresql&logoColor=white)
+![Status](https://img.shields.io/badge/status-v0%20in%20progress-yellow)
+![License](https://img.shields.io/badge/license-unreleased-lightgrey)
+
 A guided, plain-language FAIR data-maturity assessment tool for research organizations that don't have a data librarian on staff.
 
 ## Status

@@ -345,6 +345,9 @@ Running context for any agent (Claude, Devin, or a fresh session of either) pick
 - [#4 — Checkpoint 8: real ACE pilot](https://github.com/atwine/fair-maturity-copilot/issues/4) — depends on #3; requires the project owner to actually arrange the pilot session, flagged explicitly as not something an agent can do alone.
 - [#5 — Checkpoint 9: mentor POC](https://github.com/atwine/fair-maturity-copilot/issues/5) — full scope already decided in `docs/DECISIONS.md` v19 (tool-calling only, explicit skill toggle, no RAG for now); issue is written so the scope doesn't need re-deriving, just built.
 - [#6 — Backlog: broaden repository recommendations](https://github.com/atwine/fair-maturity-copilot/issues/6) — smallest item, research already done in `docs/DECISIONS.md` v16, just needs implementing in `remediation.jinja`.
+- [#7 — Future: mentor follow-ups pending reviewer feedback](https://github.com/atwine/fair-maturity-copilot/issues/7) — RAG, external verification, adjustable-ambition content. Explicitly **blocked on #5** — deliberately deferred, not rejected, per `docs/DECISIONS.md` v19; not to be started until the mentor POC has real reviewer feedback in hand.
+
+Two smaller notes that didn't warrant their own issue got pinned as comments instead: a reminder on #4 to revisit the F3-01M/I3-01M flex-slot indicator choice after the pilot if F3 proves less useful in practice (`docs/DECISIONS.md` line ~33), and a note on #5 that whether the tool's "how does this tie together" synthesis needs to be *proactively* surfaced during the assessment flow (not just passively on `/about`) was left for the mentor POC to answer, not a separate task (`ROADMAP.md`'s "Bigger directions" section).
 
 **Why organized this way:** the project owner is stepping away for other work today and may hand some of these to Devin to pick up independently while away, hence the emphasis on each issue being self-contained rather than assuming shared session context.
 

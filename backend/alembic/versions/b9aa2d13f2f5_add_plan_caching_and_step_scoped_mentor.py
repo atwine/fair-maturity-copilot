@@ -58,9 +58,27 @@ def upgrade() -> None:
     # Existing mentor conversations/messages predate step-scoping and have
     # no plan step to point at -- dev-only test data from earlier manual
     # testing this session (see docs/DECISIONS.md / devlog/HANDOFF.md),
-    # never real ACE data, and the dev branch is already treated as freely
-    # resettable. Clearing them first lets plan_step_id be added as a plain
-    # NOT NULL column instead of needing a fabricated backfill value.
+    # never real ACE data. Clearing them lets plan_step_id be added as a
+    # plain NOT NULL column instead of needing a fabricated backfill value.
+    #
+    # Safety guard, added in review before this migration got anywhere near
+    # a shared/production database: a handful of rows is exactly what this
+    # session's own manual testing produced, and is what's expected here.
+    # If this migration ever runs somewhere that's accumulated real usage
+    # instead, silently deleting it would be a genuine, irreversible data
+    # loss with nothing at apply-time to catch it. Abort loudly instead --
+    # a human has to look at what's actually there and decide, rather than
+    # this migration deciding for them based on a comment nobody's reading
+    # at deploy time.
+    connection = op.get_bind()
+    row_count = connection.execute(sa.text("SELECT count(*) FROM mentorconversation")).scalar_one()
+    if row_count > 20:
+        raise RuntimeError(
+            f"Refusing to run this migration's cleanup: mentorconversation has {row_count} rows, far more than "
+            "the handful of dev-test rows this step expects to clear. This looks like it might be real usage -- "
+            "if it's genuinely still safe to discard, delete the rows manually and re-run, or raise the "
+            "threshold in this migration with eyes open."
+        )
     op.execute('DELETE FROM mentormessage')
     op.execute('DELETE FROM mentorconversation')
 

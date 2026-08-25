@@ -16,7 +16,13 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# set_main_option stores this in a ConfigParser, which interpolates `%` on
+# read by default -- a literal `%` anywhere in the URL (a URL-encoded
+# character in a password or query param, which Neon-generated credentials
+# can in principle contain) would raise InterpolationSyntaxError the next
+# time this value is read, breaking every alembic invocation. `%%` is the
+# escaped form ConfigParser expects.
+config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
 
 target_metadata = SQLModel.metadata
 

@@ -476,3 +476,23 @@ The mentor scoped in `docs/DECISIONS.md` v19 was implemented in two parts, both 
 **Where this leaves things:** `fix/alembic-baseline-migration` is being merged into `development`, then `development` re-merged into `staging` properly, per the same review-then-confirm-before-push discipline as every other promotion step. `main` (via PR, second independent review) is the next step after that — not started yet.
 
 **Open questions carried forward:** same as above (promotion cadence, Neon production plan decision), plus: whether the mentor's "confirm only one indicator per reply" simplification (noted in the plan as accepted, not a blocker) turns out to matter once someone actually uses the multi-indicator chat in practice — worth watching for during the eventual reviewer feedback pass, not something to preemptively fix.
+
+---
+
+## 2026-08-26 — First production promotion this session, completed: `main` is now live
+
+**The full pipeline ran end to end for the first time this session**, each step confirmed before it happened, per the standing branching discipline:
+
+1. `development` pushed (the fixed baseline migration included).
+2. `development` re-merged into `staging` cleanly (this time as a proper merge, not uncommitted edits) and pushed.
+3. **Second, independent review** — Open Code Review's delegate mode, run directly against the `staging...main` diff (not the same tool/method as the two earlier self-reviews, per the project's own two-review-methods-before-main convention). Targeted the rule categories the earlier reviews hadn't specifically swept for: mutable default arguments, `is`/`is not` misuse, bare `except`, resource-management leaks, and the frontend-specific rules (`any` types, `==` vs `===`, nested ternaries, hook rules, XSS-sensitive patterns). Also checked `package.json` for unpinned versions and `alembic.ini` for accidentally-committed secrets. No new High/Medium findings — everything real had already surfaced in the two earlier rounds.
+4. [PR #11](https://github.com/atwine/fair-maturity-copilot/pull/11) opened, `staging → main`, with the review trail summarized in the PR description.
+5. **Merged only on the user's explicit go-ahead** — the open PR was not itself treated as permission, exactly as `README.md`'s branching convention and `AGENTS.md`'s hard limits require.
+
+`main` is now fast-forwarded locally to match. This is the project's first real production merge since the original v0 scaffold (`docs/DECISIONS.md`'s "one documented exception" entry) — everything from here on is a genuine second promotion, not a special case.
+
+**What's actually live on `main` now:** real Postgres (Neon) instead of the original SQLite-only setup, the full mentor chat feature (Checkpoint 9, re-scoped to per-plan-step during this same promotion prep via issue #9), the start-new-assessment navigation fix (issue #10), and the corrected Alembic migration chain that can now actually bootstrap a fresh database — which matters immediately, since Checkpoint 7 (deploy) is the natural next step and would have silently failed on this exact bug otherwise.
+
+**Nothing has actually been deployed anywhere yet** — `main` being current doesn't mean Railway or any hosting is live; Checkpoint 7 is still open. What this promotion *does* unlock: whenever Checkpoint 7 happens, it can deploy from a `main` that's actually current and that this session has now proven can bootstrap cleanly from nothing.
+
+**Open questions carried forward:** unchanged from the entry above.

@@ -382,3 +382,50 @@ Two smaller notes that didn't warrant their own issue got pinned as comments ins
 **This work is on `feature/readme-badges-and-changelog`, merged into `development` and pushed as part of this same pause.** Nothing else is uncommitted; no servers running.
 
 **Open questions carried forward:** unchanged from the entry above (promotion cadence, Neon production scale-to-zero plan decision) — this was a documentation/audit pass only, no code changed.
+
+---
+
+## 2026-08-25 — Checkpoint 9 mentor POC built (parts 1 + 2), merged to development, docs updated for handoff to Claude
+
+**What was built this session (Devin):**
+
+The mentor scoped in `docs/DECISIONS.md` v19 was implemented in two parts, both merged to `development` and pushed to GitHub:
+
+**Part 1 — backend** (commit `06667d8`, merged via `ad33110`):
+- `MentorConversation` and `MentorMessage` tables (Alembic migration `3a9862e9560f`), scoped to `(run_id, indicator_id)`.
+- `routes_mentor.py`: three endpoints — `POST .../mentor/{indicator_id}/start` (creates conversation with skill level, generates opening greeting), `GET .../mentor/{indicator_id}` (fetch history), `POST .../mentor/{indicator_id}/messages` (send message, get reply, apply any action).
+- `mentor.py`: the conversation-turn engine. Deliberately NOT built on the OpenAI tools/function-calling API — reuses the codebase's existing pattern of a defensively-parsed marker line (`UPDATE_ANSWER: yes|partial|no` / `NOTE: <paraphrase>`), same as `plan.py`'s `GOAL:/STEP:` and `parse-remediation.ts`'s `SUMMARY:/STEPS:`.
+- `llm_client.py` extended with `generate_chat` for multi-turn conversations.
+- `mentor_system.jinja`: the system prompt template, grounded in the indicator's own content + skill-level adaptation.
+- 6 unit tests (`tests/engine/test_mentor.py`) for the action-line parser + live API tests (`tests/api/test_mentor_live.py`).
+- Alembic properly initialized and configured (the project previously used `create_all()` — since Neon is now live with real data, migrations are the right path forward).
+
+**Part 2 — UI + enriched grounding + human-factor tone** (commit `3d0a71b`, merged via `7008d79`):
+- Frontend mentor chat page (`frontend/app/assessments/[id]/mentor/[indicatorId]/page.tsx`): skill-level picker, typing indicator (a chat bubble with three bouncing dots that shows, disappears for a couple seconds, reappears — no words, no labels, after several iterations with the user to get the pace right), markdown rendering for mentor replies (bold and italics only, via `react-markdown` + `remark-gfm`).
+- Plan page (`/plan`) got a MessageCircle chat link per indicator chip.
+- System prompt enriched with prior context it was missing: the plain-language question the user was asked, the indicator's priority, and the user's current answer value + their own free-text note (threaded through `routes_mentor.py` → `adapter.py` → `mentor_prompt.py` → template via a new `current_answer` parameter on `render_mentor_system_prompt`).
+- "WHERE YOUR KNOWLEDGE COMES FROM" section added to the prompt — makes explicit that the mentor is grounded in the indicator's own content, not a live registry or web search. This directly answers the user's own question during the session: "where is the mentor getting this knowledge from?"
+- "HOW TO TALK — THE HUMAN FACTOR" section added — the mentor greets back when greeted (instead of jumping straight to a task directive), asks one question at a time, matches the user's tone, admits when it doesn't know. Prompted by the user's direct feedback that replying to "hello" with an immediate task directive "is not human-like behavior."
+
+**Verified end-to-end from scratch** (no seeding, just what a real user would do): create assessment → answer 12 indicators (9 yes, 3 no) → complete → report (score 75, 12 findings, all with remediation) → plan (3 steps) → start mentor conversation → mentor greets: *"Hi, how are you doing? I can see you're working on explicit reuse license or usage terms..."* → send "hello" → mentor replies: *"Hello! I can see you're working on explicit reuse license or usage terms for your dataset. You mentioned earlier that you don't have a license statement on the dataset yet. Can you tell me a bit more about what's holding you back?"* → conversation persists and is retrievable. Backend: 6/6 unit tests pass, app loads. Frontend: TypeScript clean, ESLint clean.
+
+**Two issues filed for follow-up, both deferred at the user's explicit request:**
+- [#9](https://github.com/atwine/fair-maturity-copilot/issues/9) — one chat per plan-step objective, not per indicator. The user wants a single conversation per plan-step card covering all indicators in that step, not separate chats per sub-indicator. Significant architectural shift (database, routes, prompt, action-line format, frontend). Filed for later.
+- [#10](https://github.com/atwine/fair-maturity-copilot/issues/10) — no way to start a new assessment or reset after completing one. The mentor chat page and plan page have no "start new" button. Filed for later.
+
+**Docs updated this session** (this commit, on `feature/mentor-poc-docs`):
+- `CHANGELOG.md`: two new entries under `[Unreleased]` → `### Added` (mentor POC part 1 backend, mentor POC part 2 UI + grounding + human factor).
+- `README.md`: status line updated (mentor now listed), API surface table got the 3 mentor endpoints, repo layout updated (mentor page, mentor prompts).
+- `ROADMAP.md`: Checkpoint 9 marked `[x]` with full description of what was built + the two follow-up issues. "Bigger directions" mentor entry marked built.
+- `docs/DECISIONS.md`: v21 added — full account of both parts, the enriched grounding, the human-factor tone, the end-to-end verification, and the two deferred issues.
+- This HANDOFF.md entry.
+
+**Where to pick up (for Claude or any fresh agent):**
+- `development` branch is up to date with `origin/development` (includes both mentor POC parts + these doc updates once merged).
+- The mentor is functional end-to-end but currently scoped per-indicator. Issue #9 is the next big mentor change if the user wants to pursue it.
+- Issue #10 (no way to start a new assessment after completing one) is a UX gap the user noticed during testing — not blocking but worth picking up soon.
+- RAG, external verification, and adjustable-ambition content remain deferred per issue #7 — to be revisited after the POC is shown to more experienced reviewers.
+- Checkpoints 6 (eval harness), 7 (deploy), and 8 (real ACE pilot) are still open on the roadmap.
+- The user is taking this project back to Claude for further changes after this handoff.
+
+**Open questions carried forward:** Promotion cadence for development→staging→main still unconfirmed. Neon production scale-to-zero plan decision still deferred to Checkpoint 7. The `uvicorn --reload` unreliability in the OneDrive-synced working directory persists — manually kill and restart the backend after every backend code change.

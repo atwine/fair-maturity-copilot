@@ -12,7 +12,7 @@ A guided, plain-language FAIR data-maturity assessment tool for research organiz
 
 ## Status
 
-**In progress, feature-complete for v0 — merged to `main`.** Backend (engine, FAIR adapter content, remediation prompt, FAIRification plan synthesis, REST API) and frontend (assessment wizard, review, report, plan, and about pages) are both built and tested, including live end-to-end runs in a real browser against vLLM. Not yet deployed anywhere or piloted with a real ACE user — see [`ROADMAP.md`](ROADMAP.md) for what's left (an eval harness, deployment, the actual pilot) and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
+**In progress, feature-complete for v0 — merged to `main`. Backend (engine, FAIR adapter content, remediation prompt, FAIRification plan synthesis, REST API, over-the-shoulder mentor) and frontend (assessment wizard, review, report, plan, mentor chat, and about pages) are both built and tested, including live end-to-end runs in a real browser against vLLM. Not yet deployed anywhere or piloted with a real ACE user — see [`ROADMAP.md`](ROADMAP.md) for what's left (an eval harness, deployment, the actual pilot) and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
 
 ## The problem
 
@@ -69,6 +69,9 @@ Most tests (`tests/engine/`, `tests/adapters/fair/`) need no database or LLM con
 | GET | `/assessments/{id}/report` | Generate (once) or fetch the cached report — plain-language findings + score |
 | POST | `/assessments/{id}/findings/{indicator_id}/regenerate` | Force one finding's remediation to be redone |
 | GET | `/assessments/{id}/plan` | Synthesize an ordered FAIRification plan from all of a run's open findings (one LLM call, not cached) |
+| POST | `/assessments/{id}/mentor/{indicator_id}/start` | Start a mentor conversation for one indicator (with a skill-level toggle: "new to this" / "done this before"); generates an opening greeting |
+| GET | `/assessments/{id}/mentor/{indicator_id}` | Fetch an existing mentor conversation's message history |
+| POST | `/assessments/{id}/mentor/{indicator_id}/messages` | Send a user message to the mentor and get a reply; if the message describes a completed fix, the mentor updates the answer via the existing rescore path |
 
 Answers can also be edited after an assessment is completed (`PUT /assessments/{id}/answers/{indicator_id}`) — this is how "revisiting" a finding from the report works: it re-scores that one indicator, regenerates its remediation, and refreshes the report's cached score.
 
@@ -106,14 +109,14 @@ backend/
   app/
     engine/            — standard-agnostic core (models, scoring, remediation, LLM client)
     adapters/registry.py — maps adapter_id -> concrete adapter; the only file allowed to know FAIR exists
-    adapters/fair/      — FAIR-specific indicators.yaml, adapter, scoring rubric, remediation + plan prompts
+    adapters/fair/      — FAIR-specific indicators.yaml, adapter, scoring rubric, remediation + plan + mentor prompts
     api/                — REST routes + schemas (see "API surface" above)
   fixtures/             — synthetic demo dataset profiles (no real ACE/TASO data touches an LLM)
   scripts/               — seed_indicators.py, run_demo_assessment.py
   tests/                 — engine boundary, FAIR adapter, remediation/plan grounding, fixture checks
   .env.example          — required env vars, including both LLM provider presets
 frontend/
-  app/                   — new, question/[indicatorId] (also used to revisit a finding), review, report, plan, about
+  app/                   — new, question/[indicatorId] (also used to revisit a finding), review, report, plan, mentor/[indicatorId], about
   lib/                   — api-client.ts + types.ts, mirroring the backend's REST contract
 docs/
   PLANNING_PROMPT.md    — the Plan Mode prompt that produced the v0 build plan

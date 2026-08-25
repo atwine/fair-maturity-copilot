@@ -145,6 +145,12 @@ export default function MentorPage() {
       ) : (
         conversation && <ChatPanel runId={runId} indicatorId={indicatorId} initial={conversation} />
       )}
+
+      <Button
+        variant="outline"
+        nativeButton={false}
+        render={<Link href="/assessments/new">Start another assessment</Link>}
+      />
     </main>
   );
 }

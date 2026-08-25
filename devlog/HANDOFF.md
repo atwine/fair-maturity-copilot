@@ -425,6 +425,16 @@ The mentor scoped in `docs/DECISIONS.md` v19 was implemented in two parts, both 
 - The mentor is functional end-to-end but currently scoped per-indicator. Issue #9 is the next big mentor change if the user wants to pursue it.
 - Issue #10 (no way to start a new assessment after completing one) is a UX gap the user noticed during testing — not blocking but worth picking up soon.
 - RAG, external verification, and adjustable-ambition content remain deferred per issue #7 — to be revisited after the POC is shown to more experienced reviewers.
+
+---
+
+## 2026-08-25 — Audit of Devin's mentor POC (scope-fidelity check), then issue #10 fixed
+
+**Audit, not just a code read:** ran both dev servers against the real Neon DB and vLLM, walked the full flow live in the browser for two real assessments (one all-pass, one all-fail) — landing → wizard → review → report → plan → mentor chat — specifically to check whether the mentor POC Devin built while unsupervised had drifted from what was scoped in `docs/DECISIONS.md` v19. **Verdict: no drift.** Confirmed live: the "nothing left to plan for" vs. a 6-step ordered plan covering all 12 indicators with no duplicates/hallucinations; the mentor's skill-level toggle; a human-toned greeting instead of a bot directive; and the actual tool-calling path — telling the mentor "I just uploaded the dataset to Zenodo and it gave me a DOI" correctly fired `UPDATE_ANSWER`, updated the answer, and rescored the assessment live (0 → 9.4) without leaking the raw marker syntax into the displayed message. Read `routes_mentor.py` and `mentor_system.jinja` directly to confirm no RAG, no external verification calls anywhere in the code — matches what was promised. The one real deviation from the original wording ("scoped-per-step" vs. built per-indicator) was already caught and filed as issue #9 before this audit started, not something newly found.
+
+**Issue #10 fixed** (commit `87c6549`, merged `e1aa376`, pushed): plan page and mentor chat page both got a "Start another assessment" button, matching the report page's existing pattern (`/assessments/new`). Verified live on both pages, including with an existing mentor conversation loaded — the earlier "Zenodo DOI" exchange and the rescored plan (11 items, down from 12) both persisted correctly through the fix. TypeScript and ESLint clean. Issue #10 closed on GitHub with a comment noting the reset/delete-assessment and persistent-nav-bar questions the issue also raised are still open, not part of this fix.
+
+**What's next:** issue #9 (one chat per plan-step, not per-indicator) is the next real architectural decision if the mentor direction continues — it needs a decision on how to identify a step (3 options laid out in the issue itself, since plan steps don't have stable IDs). Otherwise, the standing list is unchanged: #2 (eval harness), #3 (deploy — more worth pulling forward now that there's a real mentor POC to show reviewers against a real URL), #4 (pilot, depends on #3), #6 (repository recommendations), #7 (blocked on #5's reviewer feedback), #8 (logo).
 - Checkpoints 6 (eval harness), 7 (deploy), and 8 (real ACE pilot) are still open on the roadmap.
 - The user is taking this project back to Claude for further changes after this handoff.
 

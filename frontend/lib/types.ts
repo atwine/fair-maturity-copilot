@@ -71,6 +71,7 @@ export interface PlanIndicatorRef {
 }
 
 export interface PlanStep {
+  id: string;
   title: string;
   detail: string;
   indicators: PlanIndicatorRef[];
@@ -80,4 +81,31 @@ export interface Plan {
   run_id: string;
   goal: string;
   steps: PlanStep[];
+}
+
+export type SkillLevel = "new_to_this" | "done_this_before";
+
+export interface MentorMessage {
+  role: "user" | "mentor";
+  content: string;
+  created_at: string;
+}
+
+export interface MentorConversation {
+  step_id: string;
+  skill_level: SkillLevel;
+  indicators: PlanIndicatorRef[];
+  messages: MentorMessage[];
+}
+
+export interface MentorAction {
+  indicator_id: string;
+  new_value: AnswerValue;
+  new_severity: Finding["severity"];
+  new_score: number;
+}
+
+export interface MentorReply {
+  mentor_message: MentorMessage;
+  action_taken: MentorAction | null;
 }

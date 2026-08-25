@@ -73,6 +73,7 @@ class PlanIndicatorRefOut(BaseModel):
 
 
 class PlanStepOut(BaseModel):
+    id: UUID  # stable across visits once saved -- what a mentor chat is scoped to (issue #9)
     title: str
     detail: str
     indicators: list[PlanIndicatorRefOut]
@@ -82,3 +83,36 @@ class PlanOut(BaseModel):
     run_id: UUID
     goal: str
     steps: list[PlanStepOut]
+
+
+class MentorStartRequest(BaseModel):
+    skill_level: str  # "new_to_this" | "done_this_before" -- explicit, never inferred
+
+
+class MentorMessageIn(BaseModel):
+    content: str
+
+
+class MentorMessageOut(BaseModel):
+    role: str  # "user" | "mentor"
+    content: str
+    created_at: datetime
+
+
+class MentorConversationOut(BaseModel):
+    step_id: UUID
+    skill_level: str
+    indicators: list[PlanIndicatorRefOut]  # what this step (and so this chat) covers
+    messages: list[MentorMessageOut]
+
+
+class MentorActionOut(BaseModel):
+    indicator_id: str
+    new_value: str  # "yes" | "partial" | "no"
+    new_severity: str
+    new_score: float
+
+
+class MentorReplyOut(BaseModel):
+    mentor_message: MentorMessageOut
+    action_taken: MentorActionOut | None

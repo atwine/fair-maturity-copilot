@@ -13,14 +13,15 @@ _PROMPT_DIR = Path(__file__).parent / "prompts"
 _env = Environment(loader=FileSystemLoader(str(_PROMPT_DIR)), trim_blocks=True, lstrip_blocks=True)
 _template = _env.get_template("remediation.jinja")
 
-PROMPT_VERSION = "fair-remediation-v1"
+PROMPT_VERSION = "fair-remediation-v2"
 
 
-def render_remediation_prompt(*, indicator: Indicator, answer: Answer, subject_label: str) -> str:
+def render_remediation_prompt(*, indicator: Indicator, answer: Answer, subject_label: str, severity: str) -> str:
     return _template.render(
         subject_label=subject_label,
         indicator=indicator,
         answer_label=answer.raw_answer.get("label", answer.raw_answer.get("value", "")),
         free_text_note=answer.free_text_note,
         is_dont_know=answer.is_dont_know,
+        severity=severity,
     )

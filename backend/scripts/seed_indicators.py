@@ -45,6 +45,7 @@ def seed() -> None:
                     "definition",
                     "plain_language_question",
                     "help_text",
+                    "example",
                     "priority",
                     "display_order",
                     "scoring_rubric",

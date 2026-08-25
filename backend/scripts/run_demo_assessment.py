@@ -49,17 +49,16 @@ def run_one(dataset: dict, adapter: FairAdapter) -> None:
         finding = adapter.score(indicator, answer)
         findings.append(finding)
 
-        if finding.severity != "pass":
-            prompt = adapter.render_remediation_prompt(
-                indicator=indicator, answer=answer, subject_label=dataset["subject_label"]
-            )
-            draft = write_remediation(
-                finding=finding, answer=answer, prompt=prompt, prompt_version=adapter.prompt_version
-            )
-            remediations_by_finding_id[str(finding.id)] = draft
-            remediation_count += 1
-            flag = "" if draft.grounding_check_passed else "  [grounding check FAILED: " + str(draft.grounding_check_notes) + "]"
-            print(f"    {indicator.title[:45]:45s} -> {finding.severity:10s}{flag}")
+        prompt = adapter.render_remediation_prompt(
+            indicator=indicator, answer=answer, subject_label=dataset["subject_label"], severity=finding.severity
+        )
+        draft = write_remediation(
+            finding=finding, answer=answer, prompt=prompt, prompt_version=adapter.prompt_version
+        )
+        remediations_by_finding_id[str(finding.id)] = draft
+        remediation_count += 1
+        flag = "" if draft.grounding_check_passed else "  [grounding check FAILED: " + str(draft.grounding_check_notes) + "]"
+        print(f"    {indicator.title[:45]:45s} -> {finding.severity:10s}{flag}")
 
     markdown, score = build_report_markdown(
         findings=findings, indicators_by_id=indicators_by_id, remediations_by_finding_id=remediations_by_finding_id

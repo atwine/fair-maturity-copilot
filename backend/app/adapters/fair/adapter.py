@@ -37,5 +37,9 @@ class FairAdapter:
             priority_weight=priority_weight_for(indicator.priority),
         )
 
-    def render_remediation_prompt(self, indicator: Indicator, answer: Answer, subject_label: str) -> str:
-        return _render_remediation_prompt(indicator=indicator, answer=answer, subject_label=subject_label)
+    def render_remediation_prompt(
+        self, indicator: Indicator, answer: Answer, subject_label: str, severity: str
+    ) -> str:
+        return _render_remediation_prompt(
+            indicator=indicator, answer=answer, subject_label=subject_label, severity=severity
+        )

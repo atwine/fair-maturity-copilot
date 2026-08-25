@@ -12,7 +12,7 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 
-# Node / Next.js (frontend not scaffolded yet, pre-declared)
+# Node / Next.js
 node_modules/
 .next/
 
@@ -22,6 +22,11 @@ node_modules/
 *.local
 !.env.example
 !**/.env.example
+!**/.env.local.example
 
-# will fill in with stack-specific ignores (node_modules, __pycache__, etc.)
-# once the tech stack is confirmed by the Plan Mode output
+# local SQLite databases (dev.db, throwaway test dbs) -- never committed;
+# real environments use Postgres via Neon (see backend/.env.example)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3

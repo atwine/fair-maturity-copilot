@@ -50,6 +50,14 @@ indicators:
       both can change or move. A DOI (from Zenodo, an institutional
       repository, or a data journal) or a formal accession number that
       never changes is what counts here.
+    example: >
+      A TB genomics project uploads its dataset to Zenodo, a free
+      repository, which assigns it a permanent web link (a DOI) like
+      doi.org/10.5281/zenodo.123456 — that link still works years later,
+      even if the researcher leaves and the file gets renamed. A dataset
+      that only lives at a path like \\Shared
+      Drive\TB_Study\final_v3.csv has no such link — if that folder ever
+      gets reorganized, anyone who had the old path can no longer find it.
     priority: essential
     display_order: 1
     options: *default_options
@@ -72,6 +80,12 @@ indicators:
       Think about what's written down anywhere about this dataset — a
       README, a catalog entry, a paper's methods section. If none of that
       exists yet, that's a "No."
+    example: >
+      A short paragraph saying "Whole-genome sequencing data from 200 TB
+      patients enrolled at a Kampala hospital, 2023-2024, including
+      drug-resistance results" lets someone judge relevance without
+      opening a single file. A dataset with no description at all — just
+      a folder named "Data2024" — gives them nothing to go on.
     priority: essential
     display_order: 2
     options: *default_options
@@ -93,6 +107,13 @@ indicators:
     help_text: >
       "People on my team know about it" doesn't count. The bar is whether
       someone with no prior knowledge could stumble onto a record of it.
+    example: >
+      A dataset listed in your institution's research data catalog, or
+      registered with a free service like Zenodo, can be found through a
+      search by someone who has never met your team. A dataset that only
+      your immediate collaborators know about — because someone mentioned
+      it in a meeting — isn't discoverable in this sense, however good
+      its documentation is.
     priority: essential
     display_order: 3
     options: *default_options
@@ -114,6 +135,13 @@ indicators:
       Health data is rarely fully open, and that's fine — what matters here
       is whether the *process* to request it is documented, not whether
       access is unrestricted.
+    example: >
+      A data-sharing page that says "Access requires ethics approval from
+      the institutional review board; email data-requests@example.org
+      with your approved protocol" counts, even though access itself is
+      restricted. This indicator only asks whether the *process* for
+      requesting access is written down somewhere — not whether anyone
+      can access the data freely.
     priority: important
     display_order: 4
     options: *default_options
@@ -137,6 +165,12 @@ indicators:
       raised here deliberately: for health data specifically, an undocumented,
       ad hoc access process is a real governance risk worth surfacing even
       at this early stage.
+    example: >
+      An IT-maintained list of who currently has access to a shared drive
+      — updated when someone joins or leaves the project — is a defined
+      mechanism. Informally forwarding a Google Drive link to whoever
+      asks, with no record kept of who has it, is exactly the ad hoc
+      pattern this indicator is checking for.
     priority: important
     display_order: 5
     options: *default_options
@@ -158,6 +192,13 @@ indicators:
       This is one of the most common gaps at institutions without a formal
       repository: a project ends, a laptop is wiped, and there's no trace
       left that the dataset was ever created.
+    example: >
+      Registering the dataset's title, description, and identifier with a
+      repository means that even after the grant period ends and the raw
+      files are deleted, a record proving the dataset existed (and what
+      it roughly contained) is still findable. If the only record is the
+      files themselves in one folder, deleting that folder erases every
+      trace it ever existed.
     priority: essential
     display_order: 6
     options: *default_options
@@ -182,6 +223,13 @@ indicators:
       standard file types (CSV, not a proprietary format) and any
       recognized coding system counts. If everything is bespoke and
       undocumented, that's a "No."
+    example: >
+      Storing lab results as plain CSV files, with diagnoses coded using a
+      recognized system like ICD-10, means another system or researcher
+      can interpret them without asking your team what each column means.
+      A spreadsheet with columns labeled in personal shorthand only your
+      team understands (like "Dx1", "Stat") is the in-house structure
+      this indicator is checking for.
     priority: important
     display_order: 7
     options: *default_options
@@ -203,6 +251,13 @@ indicators:
       This is usually the single highest-leverage gap to close: a short
       README with variable definitions goes a very long way, and it's
       something a research lead can personally audit and fix.
+    example: >
+      A short README stating "age_yrs: patient age in completed years at
+      enrollment; hiv_status: 1=positive, 0=negative, 9=not tested" lets
+      someone else correctly reuse your data. A dataset with no such
+      document — where column meanings exist only in the original
+      researcher's memory — fails this even if the underlying data is
+      excellent.
     priority: essential
     display_order: 8
     options: *default_options
@@ -224,6 +279,12 @@ indicators:
       "No stated terms" is itself a real risk for health data, not a
       neutral default — it leaves anyone who later wants to reuse the data
       unsure what's actually permitted.
+    example: >
+      A line on the dataset's landing page reading "Shared under CC BY
+      4.0" or even "Internal use only — contact the PI for permission"
+      both count, because either tells a future user what's allowed. A
+      dataset with nothing stated at all leaves anyone who finds it
+      unsure whether they're even allowed to open it, let alone use it.
     priority: essential
     display_order: 9
     options: *default_options
@@ -244,6 +305,13 @@ indicators:
       This matters for trustworthiness as much as reusability — for health
       data especially, "we don't know how this was processed" undermines
       confidence in any analysis built on top of it.
+    example: >
+      A short processing note reading "Raw data collected via a mobile
+      survey tool, March-June 2024; duplicate entries removed and dates
+      standardized by J. Okello, July 2024" documents provenance. A
+      dataset cleaned and merged by several people over time, with no
+      record of what changed or who changed it, fails this even if the
+      final numbers look fine.
     priority: important
     display_order: 10
     options: *default_options
@@ -265,6 +333,13 @@ indicators:
       If your team is already planning to move data into a common data
       model like OMOP CDM, that's a strong "Yes" in spirit even before the
       migration is finished — note that in the free-text field.
+    example: >
+      Structuring clinical data using a recognized data model (such as
+      OMOP, used widely in health research), or following a domain
+      reporting checklist, counts as following a recognized standard —
+      even partially. A dataset organized entirely in a structure your
+      team invented, with no reference to any external standard, is the
+      fully bespoke case this indicator flags.
     priority: essential
     display_order: 11
     options: *default_options
@@ -289,6 +364,13 @@ indicators:
       alternative (whether metadata links to *related* datasets/projects)
       because it completes full coverage of the Findable principle. See
       docs/DECISIONS.md for that call, and revisit after the first pilot.
+    example: >
+      A metadata record stating "This description refers to the dataset
+      identified by doi.org/10.5281/zenodo.123456" unambiguously ties the
+      description to the actual files. A metadata record and a dataset
+      that share no common identifier or reference — so a reader can't be
+      sure the description actually matches what they've found — is what
+      this indicator is meant to catch.
     priority: essential
     display_order: 12
     options: *default_options

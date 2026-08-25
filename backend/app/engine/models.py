@@ -10,7 +10,7 @@ app/engine/ports.py for the boundary this enforces.
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from sqlalchemy import Column, JSON
+from sqlalchemy import Column, JSON, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 
@@ -33,6 +33,7 @@ class Indicator(SQLModel, table=True):
     definition: str
     plain_language_question: str
     help_text: str
+    example: str  # a concrete worked example grounding the question in a real scenario
     priority: str  # "essential" | "important" | "useful" — adapter-defined vocabulary
     display_order: int
     scoring_rubric: dict = Field(sa_column=Column(JSON))
@@ -49,6 +50,8 @@ class AssessmentRun(SQLModel, table=True):
 
 
 class Answer(SQLModel, table=True):
+    __table_args__ = (UniqueConstraint("run_id", "indicator_id", name="uq_answer_run_indicator"),)
+
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     run_id: UUID = Field(foreign_key="assessmentrun.id")
     indicator_id: str = Field(foreign_key="indicator.id")
@@ -59,6 +62,8 @@ class Answer(SQLModel, table=True):
 
 
 class Finding(SQLModel, table=True):
+    __table_args__ = (UniqueConstraint("run_id", "indicator_id", name="uq_finding_run_indicator"),)
+
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     run_id: UUID = Field(foreign_key="assessmentrun.id")
     indicator_id: str = Field(foreign_key="indicator.id")
@@ -82,7 +87,7 @@ class RemediationDraft(SQLModel, table=True):
 
 class Report(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    run_id: UUID = Field(foreign_key="assessmentrun.id")
+    run_id: UUID = Field(foreign_key="assessmentrun.id", unique=True)
     generated_at: datetime = Field(default_factory=_utcnow)
     summary_score: float
     rendered_markdown: str

@@ -39,9 +39,12 @@ class Adapter(Protocol):
         Must not mutate global state; pure function of (indicator, answer)."""
         ...
 
-    def render_remediation_prompt(self, indicator: Indicator, answer: Answer, subject_label: str) -> str:
-        """Build the remediation-writer prompt for one weak/unknown finding.
-        The engine (app/engine/remediation.py) owns *how* the prompt gets
-        sent to the LLM and grounding-checked; the adapter owns *what* goes
-        into it for its own standard."""
+    def render_remediation_prompt(
+        self, indicator: Indicator, answer: Answer, subject_label: str, severity: str
+    ) -> str:
+        """Build the remediation-writer prompt for one finding — including a
+        passing one, which gets a short "why this is fine" note instead of a
+        fix. The engine (app/engine/remediation.py) owns *how* the prompt
+        gets sent to the LLM and grounding-checked; the adapter owns *what*
+        goes into it, and severity is what lets it pick the right framing."""
         ...

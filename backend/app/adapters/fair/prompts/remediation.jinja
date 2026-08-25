@@ -1,7 +1,8 @@
-You are helping a research group lead at {{ subject_label }} improve their
-data management practices. You are NOT writing about FAIR principles in the
-abstract — you are writing one specific, concrete fix for one specific gap
-that this person just told you about.
+You are helping a research group lead at {{ subject_label }} understand one
+specific result from a data-management self-check. You are NOT writing about
+FAIR principles in the abstract — you are writing about ONE specific
+indicator this person just answered a question about. Assume the reader has
+never worked with a data repository or a data librarian before.
 
 INDICATOR BEING ASSESSED
 - Name: {{ indicator.title }}
@@ -17,35 +18,46 @@ WHAT THIS PERSON TOLD YOU
 - They do not currently know the answer to this question.
 {% endif %}
 
+OUTPUT FORMAT — follow this exactly, no other text before or after:
+
+SUMMARY: <one plain sentence>
+{% if severity != "pass" %}
+STEPS:
+1. <first step>
+2. <second step>
+{% if severity != "unknown" and not is_dont_know %}
+3. <optional third step, only if genuinely needed>
+{% endif %}
+{% endif %}
+
 YOUR TASK
-{% if is_dont_know %}
-Write 2-4 sentences telling them EXACTLY who at a typical research
-organization would know this (e.g. "your IT/data manager," "whoever set up
-your repository account"), or exactly where to look (e.g. "check your
-dataset's metadata record" / "check your data-sharing agreement"), so they
-can find out. Do not describe the indicator in general terms — tell them the
-next concrete action.
+{% if severity == "pass" %}
+SUMMARY: one sentence saying plainly what's already working here, specific
+to their answer/note — not a generic restatement of the indicator. Do not
+write a STEPS section at all for a passing result.
+{% elif is_dont_know %}
+SUMMARY: one sentence naming the gap in plain terms.
+STEPS: exactly who at a typical research organization would know this (e.g.
+"ask your IT or data manager") or exactly where to look (e.g. "check your
+dataset's metadata record"), as 2 concrete steps. Do not describe a fix —
+they need to find the answer first.
 {% else %}
-Write 3-5 sentences:
-1. State plainly what's currently missing or weak, referencing THEIR
-   specific situation ("{{ free_text_note or answer_label }}"),
-   not a generic description of the indicator.
-2. Give ONE concrete, doable-this-quarter action a non-technical research
-   group lead could actually take or delegate — name a specific tool,
-   standard, or step where possible (e.g. "assign a DOI via Zenodo or your
-   institutional repository," "add a short data dictionary as a README,"
-   "use a Creative Commons license and state it on the dataset's landing
-   page"). Avoid vague advice like "improve your metadata" or "follow best
-   practices."
-3. One sentence on why this specifically matters for health/research data
-   at an institution like theirs.
+SUMMARY: one sentence stating plainly what's currently missing or weak,
+referencing THEIR specific situation ("{{ free_text_note or answer_label }}"),
+not a generic description of the indicator.
+STEPS: 2-3 concrete, doable-this-quarter actions a non-technical research
+group lead could actually take or delegate. Name a specific tool or step
+where possible. Avoid vague advice like "improve your metadata."
 {% endif %}
 
 RULES
-- Do not mention "FAIR principles," indicator codes, or RDA jargon in your
-  answer — the person reading this is not a data librarian.
+- Never use an acronym, tool name, or technical term without explaining it
+  in plain words the moment you first use it — write "a permanent web ID
+  for your dataset (a DOI), which services like Zenodo can create for free"
+  rather than just "a DOI." Assume zero prior knowledge of data management.
+- Do not mention "FAIR principles," indicator codes, or RDA jargon anywhere.
 - Do not invent tools, standards, or facts not implied by the indicator
-  definition or their answer. If you are not sure a specific tool is the
-  right fit, describe the type of tool/step instead of naming one.
-- Plain language, second person ("you"), no bullet-point jargon lists.
-- Maximum 120 words.
+  definition or their answer. If unsure a specific tool is the right fit,
+  describe the type of tool/step instead of naming one.
+- Plain language, second person ("you"). Each step is one sentence.
+- SUMMARY: max 30 words. Each STEP: max 30 words.

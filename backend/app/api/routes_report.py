@@ -106,19 +106,19 @@ def _do_generate_report(session: Session, run: AssessmentRun) -> None:
     session.commit()
 
 
-def _load_report_out(session: Session, run_id: UUID) -> ReportOut:
-    report = session.exec(select(Report).where(Report.run_id == run_id)).first()
-    if report is None:
-        raise HTTPException(status_code=500, detail="Report generation did not produce a Report row")
-
-    findings = session.exec(select(Finding).where(Finding.run_id == run_id)).all()
-    finding_ids = [f.id for f in findings]
+def _latest_remediation_by_finding_id(session: Session, finding_ids: list) -> dict:
     # Ordered oldest-first so the dict comprehension below ends up with the
-    # MOST RECENT draft per finding — regenerate_finding() adds a new draft
+    # MOST RECENT draft per finding — regenerate_finding() (and a revisited
+    # answer, see _rescore_finding_and_refresh_report) adds a new draft
     # rather than replacing the old one, so a finding can have several.
     # Without this order_by, which draft "wins" here is whatever order
     # SQLite happens to return (unspecified without ORDER BY), which could
     # silently show a stale regeneration instead of the latest one.
+    #
+    # Keyed by str(finding_id) -- build_report_markdown() (engine/report.py)
+    # looks up by str(f.id), not the raw UUID, so this has to match that
+    # contract or every finding's remediation would silently look missing
+    # when this dict is handed to it.
     remediations = (
         session.exec(
             select(RemediationDraft)
@@ -128,7 +128,77 @@ def _load_report_out(session: Session, run_id: UUID) -> ReportOut:
         if finding_ids
         else []
     )
-    remediation_by_finding_id = {r.finding_id: r for r in remediations}
+    return {str(r.finding_id): r for r in remediations}
+
+
+def _rescore_finding_and_refresh_report(session: Session, run: AssessmentRun, indicator_id: str, answer: Answer) -> None:
+    """Called from routes_answers.py when someone revisits and changes an
+    answer on a run that's already completed and reported. Keeps the report
+    honest without a full 12-call regeneration: re-scores and re-writes
+    remediation for just the one indicator that changed, then recomputes the
+    cached score from all current findings. A no-op if no Report exists yet
+    for this run (nothing cached to go stale)."""
+    report = session.exec(select(Report).where(Report.run_id == run.id)).first()
+    if report is None:
+        return
+
+    adapter = get_adapter(run.adapter_id)
+    indicator = session.get(Indicator, indicator_id)
+    finding = session.exec(
+        select(Finding).where(Finding.run_id == run.id, Finding.indicator_id == indicator_id)
+    ).first()
+    if indicator is None or finding is None:
+        return
+
+    rescored = adapter.score(indicator, answer)
+    finding.severity = rescored.severity
+    finding.priority_weight = rescored.priority_weight
+    session.add(finding)
+    session.commit()
+    session.refresh(finding)
+
+    try:
+        prompt = adapter.render_remediation_prompt(
+            indicator=indicator, answer=answer, subject_label=run.subject_label, severity=finding.severity
+        )
+        draft = write_remediation(finding=finding, answer=answer, prompt=prompt, prompt_version=adapter.prompt_version)
+        session.add(draft)
+        session.commit()
+    except Exception:
+        # Deliberately swallowed: this function is called from an answer
+        # PUT whose primary job (saving the answer) already succeeded and
+        # committed above. An LLM/network failure here shouldn't turn a
+        # successful save into a 500 -- the caller only wanted to record
+        # their answer, not necessarily wait on a live model call. The
+        # finding's severity (just committed) is still correct; only its
+        # remediation text is left showing the previous draft until a
+        # successful regenerate or another revisit.
+        pass
+
+    all_findings = session.exec(select(Finding).where(Finding.run_id == run.id)).all()
+    all_indicators = session.exec(
+        select(Indicator).where(Indicator.id.in_({f.indicator_id for f in all_findings}))
+    ).all()
+    indicators_by_id = {i.id: i for i in all_indicators}
+    remediations_by_finding_id = _latest_remediation_by_finding_id(session, [f.id for f in all_findings])
+
+    markdown, score = build_report_markdown(
+        findings=all_findings, indicators_by_id=indicators_by_id, remediations_by_finding_id=remediations_by_finding_id
+    )
+    report.summary_score = score
+    report.rendered_markdown = markdown
+    session.add(report)
+    session.commit()
+
+
+def _load_report_out(session: Session, run_id: UUID) -> ReportOut:
+    report = session.exec(select(Report).where(Report.run_id == run_id)).first()
+    if report is None:
+        raise HTTPException(status_code=500, detail="Report generation did not produce a Report row")
+
+    findings = session.exec(select(Finding).where(Finding.run_id == run_id)).all()
+    finding_ids = [f.id for f in findings]
+    remediation_by_finding_id = _latest_remediation_by_finding_id(session, finding_ids)
 
     indicator_ids = {f.indicator_id for f in findings}
     indicators = (
@@ -142,8 +212,8 @@ def _load_report_out(session: Session, run_id: UUID) -> ReportOut:
             title=indicators_by_id[f.indicator_id].title,
             severity=f.severity,
             principle_group=indicators_by_id[f.indicator_id].principle_group,
-            remediation_text=remediation_by_finding_id[f.id].remediation_text
-            if f.id in remediation_by_finding_id
+            remediation_text=remediation_by_finding_id[str(f.id)].remediation_text
+            if str(f.id) in remediation_by_finding_id
             else None,
         )
         for f in sorted(findings, key=lambda f: indicators_by_id[f.indicator_id].display_order)

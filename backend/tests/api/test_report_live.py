@@ -132,3 +132,41 @@ def test_regenerate_on_passing_finding_still_works(client):
     r = client.post(f"/assessments/{run_id}/findings/fair.f1-identifier/regenerate")
     assert r.status_code == 200
     assert r.json()["remediation_text"]
+
+
+def test_revisiting_an_answer_rescoes_and_refreshes_the_report(client):
+    # A gap ("no") revisited into a pass -- the finding's severity, its
+    # remediation text, and the report's cached score must all move
+    # together, without regenerating the other 11 findings.
+    run_id = _create_and_complete_run(
+        client,
+        extra_answers={
+            "fair.r1-1-license": {
+                "value": "no",
+                "label": "No, not true",
+                "note": "No license has ever been stated for this test dataset.",
+            }
+        },
+    )
+    before = client.get(f"/assessments/{run_id}/report").json()
+    before_finding = next(f for f in before["findings"] if f["indicator_id"] == "fair.r1-1-license")
+    assert before_finding["severity"] == "major_gap"
+
+    r = client.put(
+        f"/assessments/{run_id}/answers/fair.r1-1-license",
+        json={"value": "yes", "label": "Yes, clearly true", "note": "Added a CC BY license this week."},
+    )
+    assert r.status_code == 200
+
+    after = client.get(f"/assessments/{run_id}/report").json()
+    after_finding = next(f for f in after["findings"] if f["indicator_id"] == "fair.r1-1-license")
+    assert after_finding["severity"] == "pass"
+    assert after_finding["remediation_text"]
+    assert after_finding["remediation_text"] != before_finding["remediation_text"]
+    assert after["score"] > before["score"]
+
+    # The other 11 findings' remediation text must be untouched -- this
+    # only re-generates the one indicator that actually changed.
+    untouched_before = next(f for f in before["findings"] if f["indicator_id"] == "fair.f1-identifier")
+    untouched_after = next(f for f in after["findings"] if f["indicator_id"] == "fair.f1-identifier")
+    assert untouched_before["remediation_text"] == untouched_after["remediation_text"]

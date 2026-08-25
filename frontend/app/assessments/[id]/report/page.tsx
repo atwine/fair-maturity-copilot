@@ -137,6 +137,7 @@ export default function ReportPage() {
           {needsAttention.map((finding) => (
             <FindingCard
               key={finding.indicator_id}
+              runId={runId}
               finding={finding}
               regenerating={regenerating === finding.indicator_id}
               onRegenerate={() => handleRegenerate(finding.indicator_id)}
@@ -151,6 +152,7 @@ export default function ReportPage() {
           {looksGood.map((finding) => (
             <FindingCard
               key={finding.indicator_id}
+              runId={runId}
               finding={finding}
               regenerating={regenerating === finding.indicator_id}
               onRegenerate={() => handleRegenerate(finding.indicator_id)}
@@ -169,10 +171,12 @@ export default function ReportPage() {
 }
 
 function FindingCard({
+  runId,
   finding,
   regenerating,
   onRegenerate,
 }: {
+  runId: string;
   finding: Finding;
   regenerating: boolean;
   onRegenerate: () => void;
@@ -213,9 +217,20 @@ function FindingCard({
           </Collapsible>
         )}
 
-        <Button size="sm" variant="outline" onClick={onRegenerate} disabled={regenerating}>
-          {regenerating ? "Regenerating…" : "Regenerate this suggestion"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            size="sm"
+            nativeButton={false}
+            render={
+              <Link href={`/assessments/${runId}/question/${finding.indicator_id}?from=report`}>
+                Update your answer
+              </Link>
+            }
+          />
+          <Button size="sm" variant="outline" onClick={onRegenerate} disabled={regenerating}>
+            {regenerating ? "Regenerating…" : "Regenerate this suggestion"}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

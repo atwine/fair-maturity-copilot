@@ -1,0 +1,377 @@
+# The FAIR adapter's content library. This is DATA, not code — editable
+# without touching adapter.py or anything in app/engine/. Grounded in the
+# RDA FAIR Data Maturity Model (DOI 10.15497/rda00045, CC-BY 4.0): 41
+# indicators total, 12 selected here for v0. See docs/DECISIONS.md and
+# ROADMAP.md for why these 12 and not the other 29.
+#
+# scoring_rubric maps a raw answer value to a severity. "dont_know" always
+# maps to "unknown" — that's a first-class outcome, not a failure — see
+# app/engine/remediation.py's different prompt path for it.
+
+adapter:
+  id: fair-v0
+  name: "FAIR Data Maturity (RDA)"
+  version: "0.1.0"
+
+default_scoring_rubric: &default_rubric
+  # yes/no MUST be quoted — unquoted YAML 1.1 booleans (the "Norway
+  # problem") would silently turn these keys into Python True/False.
+  "yes": pass
+  partial: minor_gap
+  "no": major_gap
+  dont_know: unknown
+
+default_options: &default_options
+  - value: "yes"
+    label: "Yes, clearly true"
+  - value: partial
+    label: "Partially / inconsistently true"
+  - value: "no"
+    label: "No, not true"
+  - value: dont_know
+    label: "I don't know"
+
+indicators:
+  - id: fair.f1-identifier
+    external_code: "RDA-F1-01M / RDA-F1-01D / RDA-F1-02M / RDA-F1-02D"
+    principle_group: Findable
+    title: "Persistent, unique identifier"
+    definition: >
+      Metadata and data are assigned a globally unique, persistent
+      identifier — something like a DOI, or a permanent institutional
+      accession number — that will still resolve to this dataset years
+      from now, even if the file itself moves.
+    plain_language_question: >
+      Does this dataset (or its record) have a permanent, unique identifier
+      — for example a DOI, or a fixed accession/reference number your
+      institution assigns — rather than just a filename or a folder path?
+    help_text: >
+      A filename or a shared-drive path is not a persistent identifier —
+      both can change or move. A DOI (from Zenodo, an institutional
+      repository, or a data journal) or a formal accession number that
+      never changes is what counts here.
+    example: >
+      A TB genomics project uploads its dataset to Zenodo, a free
+      repository, which assigns it a permanent web link (a DOI) like
+      doi.org/10.5281/zenodo.123456 — that link still works years later,
+      even if the researcher leaves and the file gets renamed. A dataset
+      that only lives at a path like \\Shared
+      Drive\TB_Study\final_v3.csv has no such link — if that folder ever
+      gets reorganized, anyone who had the old path can no longer find it.
+    priority: essential
+    display_order: 1
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: fair.f2-metadata-richness
+    external_code: "RDA-F2-01M"
+    principle_group: Findable
+    title: "Enough metadata to judge relevance"
+    definition: >
+      There is enough descriptive metadata — title, description, subject
+      area, date, creator(s) — that someone could decide whether this
+      dataset is relevant to them without having to open and inspect the
+      data itself.
+    plain_language_question: >
+      If someone found only this dataset's title and a short description
+      (not the data itself), would they have enough information to know
+      what it contains and whether it's relevant to their work?
+    help_text: >
+      Think about what's written down anywhere about this dataset — a
+      README, a catalog entry, a paper's methods section. If none of that
+      exists yet, that's a "No."
+    example: >
+      A short paragraph saying "Whole-genome sequencing data from 200 TB
+      patients enrolled at a Kampala hospital, 2023-2024, including
+      drug-resistance results" lets someone judge relevance without
+      opening a single file. A dataset with no description at all — just
+      a folder named "Data2024" — gives them nothing to go on.
+    priority: essential
+    display_order: 2
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: fair.f4-discoverable
+    external_code: "RDA-F4-01M"
+    principle_group: Findable
+    title: "Discoverable somewhere searchable"
+    definition: >
+      The dataset's existence is registered or indexed somewhere a person
+      outside the immediate team could actually search and find it — a
+      catalog, an institutional repository, or even a shared index page —
+      rather than being known only informally.
+    plain_language_question: >
+      If someone outside your immediate team wanted to find out this
+      dataset exists, could they — through a catalog, repository listing,
+      or shared index — without already knowing to ask you?
+    help_text: >
+      "People on my team know about it" doesn't count. The bar is whether
+      someone with no prior knowledge could stumble onto a record of it.
+    example: >
+      A dataset listed in your institution's research data catalog, or
+      registered with a free service like Zenodo, can be found through a
+      search by someone who has never met your team. A dataset that only
+      your immediate collaborators know about — because someone mentioned
+      it in a meeting — isn't discoverable in this sense, however good
+      its documentation is.
+    priority: essential
+    display_order: 3
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: fair.a1-access-process
+    external_code: "RDA-A1-01M"
+    principle_group: Accessible
+    title: "Access process is documented"
+    definition: >
+      The metadata explains how someone would actually go about getting
+      access to the data — whether it's fully open, available on request
+      with approval, or closed — and what the process for that is.
+    plain_language_question: >
+      Is it written down anywhere (not just known informally) how someone
+      would request or obtain access to this dataset, and what that
+      process involves?
+    help_text: >
+      Health data is rarely fully open, and that's fine — what matters here
+      is whether the *process* to request it is documented, not whether
+      access is unrestricted.
+    example: >
+      A data-sharing page that says "Access requires ethics approval from
+      the institutional review board; email data-requests@example.org
+      with your approved protocol" counts, even though access itself is
+      restricted. This indicator only asks whether the *process* for
+      requesting access is written down somewhere — not whether anyone
+      can access the data freely.
+    priority: important
+    display_order: 4
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: fair.a1-2-access-control
+    external_code: "RDA-A1.2-02D"
+    principle_group: Accessible
+    title: "Defined access-control mechanism"
+    definition: >
+      Where access requires authorization, there is an actual defined
+      mechanism for granting and revoking it (an access list, an approval
+      workflow, credentialed accounts) rather than an ad hoc process like
+      informally emailing someone.
+    plain_language_question: >
+      If this dataset requires permission to access, is there an actual
+      defined way that access is granted and tracked — rather than "email
+      the PI and hope they remember to share it"?
+    help_text: >
+      This is rated lower priority in the original FAIR framework, but
+      raised here deliberately: for health data specifically, an undocumented,
+      ad hoc access process is a real governance risk worth surfacing even
+      at this early stage.
+    example: >
+      An IT-maintained list of who currently has access to a shared drive
+      — updated when someone joins or leaves the project — is a defined
+      mechanism. Informally forwarding a Google Drive link to whoever
+      asks, with no record kept of who has it, is exactly the ad hoc
+      pattern this indicator is checking for.
+    priority: important
+    display_order: 5
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: fair.a2-metadata-persistence
+    external_code: "RDA-A2-01M"
+    principle_group: Accessible
+    title: "Record survives even if data is taken down"
+    definition: >
+      If the dataset is ever embargoed, taken offline, or the underlying
+      files are lost, the metadata record — proof that it existed, who
+      made it, and roughly what it contained — remains findable.
+    plain_language_question: >
+      If this dataset's files disappeared tomorrow (a drive failure, an
+      end-of-project cleanup), would any record that it existed still be
+      findable anywhere?
+    help_text: >
+      This is one of the most common gaps at institutions without a formal
+      repository: a project ends, a laptop is wiped, and there's no trace
+      left that the dataset was ever created.
+    example: >
+      Registering the dataset's title, description, and identifier with a
+      repository means that even after the grant period ends and the raw
+      files are deleted, a record proving the dataset existed (and what
+      it roughly contained) is still findable. If the only record is the
+      files themselves in one folder, deleting that folder erases every
+      trace it ever existed.
+    priority: essential
+    display_order: 6
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: fair.i1-i2-standard-formats
+    external_code: "RDA-I1-01M / RDA-I2-01M"
+    principle_group: Interoperable
+    title: "Standard formats and vocabularies"
+    definition: >
+      The dataset uses standard, widely-recognized file formats and
+      controlled vocabularies or terminologies (for health data: things
+      like ICD-10, LOINC, or a common data model such as OMOP or HL7 FHIR,
+      where applicable) rather than a fully ad hoc, in-house structure only
+      your team understands.
+    plain_language_question: >
+      Does this dataset use standard file formats and, where relevant,
+      standard medical/scientific terminologies — rather than a structure
+      or coding scheme that only your team would understand?
+    help_text: >
+      You don't need a full common data model to answer "Yes" here — using
+      standard file types (CSV, not a proprietary format) and any
+      recognized coding system counts. If everything is bespoke and
+      undocumented, that's a "No."
+    example: >
+      Storing lab results as plain CSV files, with diagnoses coded using a
+      recognized system like ICD-10, means another system or researcher
+      can interpret them without asking your team what each column means.
+      A spreadsheet with columns labeled in personal shorthand only your
+      team understands (like "Dx1", "Stat") is the in-house structure
+      this indicator is checking for.
+    priority: important
+    display_order: 7
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: fair.r1-data-dictionary
+    external_code: "RDA-R1-01M"
+    principle_group: Reusable
+    title: "Data dictionary / methodology documented"
+    definition: >
+      There is enough contextual metadata — how the data was collected,
+      what each variable means, units, coding schemes — for someone else
+      to correctly understand and reuse the dataset, not just find it.
+    plain_language_question: >
+      Is there a data dictionary, codebook, or methods write-up that
+      explains what each variable/column means and how the data was
+      collected — something another researcher could actually use?
+    help_text: >
+      This is usually the single highest-leverage gap to close: a short
+      README with variable definitions goes a very long way, and it's
+      something a research lead can personally audit and fix.
+    example: >
+      A short README stating "age_yrs: patient age in completed years at
+      enrollment; hiv_status: 1=positive, 0=negative, 9=not tested" lets
+      someone else correctly reuse your data. A dataset with no such
+      document — where column meanings exist only in the original
+      researcher's memory — fails this even if the underlying data is
+      excellent.
+    priority: essential
+    display_order: 8
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: fair.r1-1-license
+    external_code: "RDA-R1.1-01M"
+    principle_group: Reusable
+    title: "Explicit reuse license or usage terms"
+    definition: >
+      The dataset has a clearly stated license or usage terms attached to
+      it — even a restrictive one like "internal use only, contact the PI"
+      — rather than no stated terms at all.
+    plain_language_question: >
+      Does this dataset have an explicitly stated license or usage terms
+      written down somewhere — even a restrictive one — rather than no
+      stated terms at all?
+    help_text: >
+      "No stated terms" is itself a real risk for health data, not a
+      neutral default — it leaves anyone who later wants to reuse the data
+      unsure what's actually permitted.
+    example: >
+      A line on the dataset's landing page reading "Shared under CC BY
+      4.0" or even "Internal use only — contact the PI for permission"
+      both count, because either tells a future user what's allowed. A
+      dataset with nothing stated at all leaves anyone who finds it
+      unsure whether they're even allowed to open it, let alone use it.
+    priority: essential
+    display_order: 9
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: fair.r1-2-provenance
+    external_code: "RDA-R1.2-01M"
+    principle_group: Reusable
+    title: "Recorded provenance"
+    definition: >
+      There is a record of the data's provenance — who collected it, when,
+      how, and what processing steps (cleaning, transformation, merging)
+      have been applied to it since.
+    plain_language_question: >
+      Is there a record of who collected this data, when, how, and what's
+      been done to it since (cleaning, merging, transformations)?
+    help_text: >
+      This matters for trustworthiness as much as reusability — for health
+      data especially, "we don't know how this was processed" undermines
+      confidence in any analysis built on top of it.
+    example: >
+      A short processing note reading "Raw data collected via a mobile
+      survey tool, March-June 2024; duplicate entries removed and dates
+      standardized by J. Okello, July 2024" documents provenance. A
+      dataset cleaned and merged by several people over time, with no
+      record of what changed or who changed it, fails this even if the
+      final numbers look fine.
+    priority: important
+    display_order: 10
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: fair.r1-3-community-standard
+    external_code: "RDA-R1.3-01M / RDA-R1.3-01D"
+    principle_group: Reusable
+    title: "Follows a recognized community standard"
+    definition: >
+      The dataset or its metadata follows a recognized community data
+      standard or minimal-information checklist for its domain, rather
+      than a fully bespoke, one-off structure.
+    plain_language_question: >
+      Does this dataset follow a recognized standard structure for its
+      field (a domain data model, a minimal-reporting checklist, a common
+      metadata schema) — or is its structure entirely bespoke to your team?
+    help_text: >
+      If your team is already planning to move data into a common data
+      model like OMOP CDM, that's a strong "Yes" in spirit even before the
+      migration is finished — note that in the free-text field.
+    example: >
+      Structuring clinical data using a recognized data model (such as
+      OMOP, used widely in health research), or following a domain
+      reporting checklist, counts as following a recognized standard —
+      even partially. A dataset organized entirely in a structure your
+      team invented, with no reference to any external standard, is the
+      fully bespoke case this indicator flags.
+    priority: essential
+    display_order: 11
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: fair.f3-metadata-links-to-data
+    external_code: "RDA-F3-01M"
+    principle_group: Findable
+    title: "Metadata clearly identifies its dataset"
+    definition: >
+      The metadata record explicitly and unambiguously states which
+      dataset it describes — through the same persistent identifier used
+      in the Findable-1 indicator — so metadata and data can't be
+      mismatched or orphaned from each other.
+    plain_language_question: >
+      Does the description/metadata for this dataset clearly state which
+      specific dataset it belongs to (e.g. by including the same
+      identifier), so the two can't get separated or confused with another
+      dataset?
+    help_text: >
+      This is the "flex slot" indicator for v0 — selected over the
+      alternative (whether metadata links to *related* datasets/projects)
+      because it completes full coverage of the Findable principle. See
+      docs/DECISIONS.md for that call, and revisit after the first pilot.
+    example: >
+      A metadata record stating "This description refers to the dataset
+      identified by doi.org/10.5281/zenodo.123456" unambiguously ties the
+      description to the actual files. A metadata record and a dataset
+      that share no common identifier or reference — so a reader can't be
+      sure the description actually matches what they've found — is what
+      this indicator is meant to catch.
+    priority: essential
+    display_order: 12
+    options: *default_options
+    scoring_rubric: *default_rubric

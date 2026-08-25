@@ -19,8 +19,6 @@ import re
 from app.engine.llm_client import generate_chat
 from app.engine.models import MentorMessage
 
-_VALID_UPDATE_VALUES = {"yes", "partial", "no"}
-
 # Line-anchored, not a bare substring search -- a bare `"UPDATE_ANSWER:" in
 # text` could misfire if the model's own conversational reply happened to
 # echo that phrase (the exact class of bug parse-remediation.ts hit with
@@ -60,12 +58,19 @@ def _extract_action(text: str, valid_indicator_ids: set[str] | None = None) -> t
     if not match:
         return text.strip(), None
 
+    # The marker line is stripped from display_text on every path below,
+    # matched or not -- a hallucinated/mistyped indicator id must not leave
+    # the raw UPDATE_ANSWER:/NOTE: lines visible to the user just because
+    # the *action* itself gets dropped. (An earlier version of this function
+    # only stripped it on the success path, which was the same "raw marker
+    # leaks into the chat" bug this whole regex's design is meant to avoid,
+    # just triggered by an unknown id instead of a note-format deviation.)
+    display_text = text[: match.start()].strip()
+
     indicator_id = match.group(1)
-    value = match.group(2).lower()
-    if value not in _VALID_UPDATE_VALUES:
-        return text.strip(), None
+    value = match.group(2).lower()  # already constrained to yes|partial|no by the regex itself
     if valid_indicator_ids is not None and indicator_id not in valid_indicator_ids:
-        return text.strip(), None
+        return display_text, None
 
     note_match = _NOTE_LINE.search(text)
     inline_note = match.group(3)

@@ -52,13 +52,18 @@ def test_invalid_value_is_ignored_not_crashed_on():
     assert display_text == text.strip()
 
 
-def test_unknown_indicator_id_is_ignored_not_crashed_on():
+def test_unknown_indicator_id_is_ignored_and_the_marker_is_still_stripped():
     # Defensive against a hallucinated or mistyped id -- same spirit as
     # plan.py's ADDRESSES: parsing dropping ids outside the valid set.
-    text = "UPDATE_ANSWER: fair.not-a-real-indicator|yes\nNOTE: Done."
+    # Regression: an earlier version left the raw UPDATE_ANSWER:/NOTE: lines
+    # in display_text on this exact path -- the same class of "marker leaks
+    # into the chat" bug the inline-note fallback above exists to prevent,
+    # just triggered by an unknown id instead of a note-format deviation.
+    text = "Sounds good!\n\nUPDATE_ANSWER: fair.not-a-real-indicator|yes\nNOTE: Done."
     display_text, action = _extract_action(text, _VALID_IDS)
     assert action is None
-    assert display_text == text.strip()
+    assert display_text == "Sounds good!"
+    assert "UPDATE_ANSWER" not in display_text
 
 
 def test_mid_sentence_mention_of_the_marker_phrase_is_not_misread_as_an_action():

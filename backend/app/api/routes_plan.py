@@ -10,7 +10,7 @@ saves a new version alongside it, so an existing mentor conversation is
 never left pointing at a row that's gone.
 """
 
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
@@ -42,10 +42,16 @@ def _load_plan_out(session: Session, run_id: UUID, plan: PlanRow) -> PlanOut:
         if step_ids
         else []
     )
+    # Ordered by the indicator's own canonical display_order (not left to
+    # whatever order Postgres happens to return) so a step's indicator list
+    # renders in a stable order across visits, matching what the mentor
+    # prompt numbers them in (routes_mentor.py).
     indicators_by_id = {
         i.id: i
         for i in (
-            session.exec(select(Indicator).where(Indicator.id.in_({link.indicator_id for link in links}))).all()
+            session.exec(
+                select(Indicator).where(Indicator.id.in_({link.indicator_id for link in links})).order_by(Indicator.display_order)
+            ).all()
             if links
             else []
         )
@@ -54,45 +60,56 @@ def _load_plan_out(session: Session, run_id: UUID, plan: PlanRow) -> PlanOut:
     for link in links:
         links_by_step.setdefault(link.plan_step_id, []).append(link)
 
-    return PlanOut(
-        run_id=run_id,
-        goal=plan.goal,
-        steps=[
-            PlanStepOut(
-                id=step.id,
-                title=step.title,
-                detail=step.detail,
-                indicators=[
-                    PlanIndicatorRefOut(
-                        indicator_id=link.indicator_id,
-                        title=indicators_by_id[link.indicator_id].title,
-                        principle_group=indicators_by_id[link.indicator_id].principle_group,
-                    )
-                    for link in links_by_step.get(step.id, [])
-                ],
+    steps_out = []
+    for step in steps:
+        indicator_refs = []
+        for link in links_by_step.get(step.id, []):
+            indicator = indicators_by_id.get(link.indicator_id)
+            if indicator is None:
+                # A saved plan can outlive the Indicator content it was
+                # built from (e.g. indicators.yaml drops or renames an id
+                # after this version was saved) -- surface a clear error
+                # naming the cause rather than an opaque KeyError, same
+                # spirit as routes_report.py's missing-indicator guard.
+                raise HTTPException(
+                    status_code=500,
+                    detail=(
+                        f"Saved plan step {step.id} references indicator {link.indicator_id!r}, which no longer "
+                        "exists. Has indicators.yaml changed since this plan was generated?"
+                    ),
+                )
+            indicator_refs.append(
+                PlanIndicatorRefOut(
+                    indicator_id=link.indicator_id, title=indicator.title, principle_group=indicator.principle_group
+                )
             )
-            for step in steps
-        ],
-    )
+        steps_out.append(PlanStepOut(id=step.id, title=step.title, detail=step.detail, indicators=indicator_refs))
+
+    return PlanOut(run_id=run_id, goal=plan.goal, steps=steps_out)
 
 
 def _save_new_plan(session: Session, run_id: UUID, built_plan: BuiltPlan) -> PlanRow:
     """Always inserts a new Plan version -- never overwrites or deletes an
     older one. See the module docstring for why: an existing mentor
-    conversation's plan_step_id has to keep resolving to a real row."""
-    plan_row = PlanRow(run_id=run_id, goal=built_plan.goal)
+    conversation's plan_step_id has to keep resolving to a real row.
+
+    Ids are generated client-side (uuid4, same default the models already
+    use) so every row for this version can be built and added in memory and
+    committed exactly once -- not once per step, which meant a real plan
+    (several steps) cost several extra round trips to a Postgres instance
+    this project's own notes already flag as latency-sensitive (Neon
+    scale-to-zero), on the exact request this caching feature exists to
+    make fast."""
+    plan_row = PlanRow(id=uuid4(), run_id=run_id, goal=built_plan.goal)
     session.add(plan_row)
-    session.commit()
-    session.refresh(plan_row)
 
     for order, step in enumerate(built_plan.steps):
-        step_row = PlanStep(plan_id=plan_row.id, display_order=order, title=step.title, detail=step.detail)
+        step_row = PlanStep(id=uuid4(), plan_id=plan_row.id, display_order=order, title=step.title, detail=step.detail)
         session.add(step_row)
-        session.commit()
-        session.refresh(step_row)
         for indicator_id in step.indicator_ids:
             session.add(PlanStepIndicator(plan_step_id=step_row.id, indicator_id=indicator_id))
     session.commit()
+    session.refresh(plan_row)
     return plan_row
 
 

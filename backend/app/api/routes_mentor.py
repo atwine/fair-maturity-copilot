@@ -63,11 +63,25 @@ def _get_run_and_step(session: Session, run_id: UUID, step_id: UUID) -> tuple[As
         raise HTTPException(status_code=404, detail="That plan step doesn't belong to this assessment")
 
     links = session.exec(select(PlanStepIndicator).where(PlanStepIndicator.plan_step_id == step_id)).all()
+    # Ordered by the indicator's own canonical display_order, not left to
+    # whatever order Postgres happens to return -- the mentor prompt numbers
+    # these ("1. ... 2. ...") and that numbering has to be stable across
+    # requests, not shuffle between the opening turn and a later one.
     indicators = session.exec(
-        select(Indicator).where(Indicator.id.in_({link.indicator_id for link in links}))
+        select(Indicator).where(Indicator.id.in_({link.indicator_id for link in links})).order_by(Indicator.display_order)
     ).all()
     if not indicators:
         raise HTTPException(status_code=500, detail="This plan step has no indicators attached")
+    if len(indicators) != len(links):
+        # A saved step can outlive the Indicator content it references (see
+        # the matching guard in routes_plan.py's _load_plan_out) -- fail
+        # loudly instead of silently briefing the mentor on fewer
+        # indicators than the step actually covers.
+        missing = {link.indicator_id for link in links} - {i.id for i in indicators}
+        raise HTTPException(
+            status_code=500,
+            detail=f"This plan step references indicators that no longer exist: {sorted(missing)}",
+        )
 
     return run, step, list(indicators)
 

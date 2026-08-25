@@ -5,6 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.adapters.registry import get_adapter
+from app.api.routes_report import _rescore_finding_and_refresh_report
 from app.api.schemas import AnswerIn, AnswerOut
 from app.db import get_session
 from app.engine.models import Answer, AssessmentRun
@@ -21,8 +22,10 @@ def upsert_answer(
     run = session.get(AssessmentRun, run_id)
     if run is None:
         raise HTTPException(status_code=404, detail="Assessment not found")
-    if run.status == "completed":
-        raise HTTPException(status_code=400, detail="Assessment is already completed; answers can no longer be edited")
+    # Editing an answer after completion is how revisiting a finding from
+    # the report works (see _rescore_finding_and_refresh_report below) --
+    # no longer blocked. What used to be a one-shot linear flow is now one
+    # a person can come back to.
     if body.value not in _VALID_VALUES:
         raise HTTPException(status_code=422, detail=f"value must be one of {sorted(_VALID_VALUES)}")
 
@@ -42,6 +45,8 @@ def upsert_answer(
         existing.is_dont_know = is_dont_know
         session.add(existing)
         session.commit()
+        session.refresh(existing)
+        saved_answer = existing
     else:
         # Two concurrent PUTs for the same (run_id, indicator_id) can both
         # reach here having seen "no existing answer" — the unique
@@ -50,17 +55,18 @@ def upsert_answer(
         # double-fired submit (a slow network + an impatient double-click,
         # or React re-invoking an effect) still ends up with one consistent
         # answer rather than a 500 or a duplicate row.
+        new_answer = Answer(
+            run_id=run_id,
+            indicator_id=indicator_id,
+            raw_answer={"value": body.value, "label": body.label},
+            free_text_note=body.note,
+            is_dont_know=is_dont_know,
+        )
         try:
-            session.add(
-                Answer(
-                    run_id=run_id,
-                    indicator_id=indicator_id,
-                    raw_answer={"value": body.value, "label": body.label},
-                    free_text_note=body.note,
-                    is_dont_know=is_dont_know,
-                )
-            )
+            session.add(new_answer)
             session.commit()
+            session.refresh(new_answer)
+            saved_answer = new_answer
         except IntegrityError:
             session.rollback()
             winner = session.exec(
@@ -71,6 +77,14 @@ def upsert_answer(
             winner.is_dont_know = is_dont_know
             session.add(winner)
             session.commit()
+            session.refresh(winner)
+            saved_answer = winner
+
+    if run.status == "completed":
+        # A revisit -- the run already has a report, so keep it honest
+        # instead of leaving it showing a stale severity/remediation for
+        # the indicator that just changed.
+        _rescore_finding_and_refresh_report(session, run, indicator_id, saved_answer)
 
     return AnswerOut(
         indicator_id=indicator_id, value=body.value, label=body.label, note=body.note, is_dont_know=is_dont_know

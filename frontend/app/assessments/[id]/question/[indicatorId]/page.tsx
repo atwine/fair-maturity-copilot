@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -17,7 +18,12 @@ const ADAPTER_ID = "fair-v0";
 export default function QuestionPage() {
   const router = useRouter();
   const params = useParams<{ id: string; indicatorId: string }>();
+  const searchParams = useSearchParams();
   const { id: runId, indicatorId } = params;
+  // Reached from a "Update your answer" action on the report, rather than
+  // as part of the original 12-question flow -- changes what happens on
+  // submit and skips the "already completed, go to report" redirect below.
+  const isRevisit = searchParams.get("from") === "report";
 
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
@@ -29,7 +35,7 @@ export default function QuestionPage() {
       try {
         const [q, a] = await Promise.all([api.getQuestions(ADAPTER_ID), api.getAssessment(runId)]);
         if (cancelled) return;
-        if (a.status === "completed") {
+        if (a.status === "completed" && !isRevisit) {
           router.replace(`/assessments/${runId}/report`);
           return;
         }
@@ -43,7 +49,7 @@ export default function QuestionPage() {
     return () => {
       cancelled = true;
     };
-  }, [runId, router]);
+  }, [runId, router, isRevisit]);
 
   if (loadError) {
     return <ErrorState message={loadError} />;
@@ -67,6 +73,7 @@ export default function QuestionPage() {
       questions={questions}
       currentIndex={currentIndex}
       subjectLabel={assessment.subject_label}
+      isRevisit={isRevisit}
       existingAnswer={assessment.answers.find((a) => a.indicator_id === indicatorId)}
       onAnswered={(updatedAnswer) =>
         setAssessment((prev) =>
@@ -90,6 +97,7 @@ function QuestionForm({
   questions,
   currentIndex,
   subjectLabel,
+  isRevisit,
   existingAnswer,
   onAnswered,
 }: {
@@ -97,6 +105,7 @@ function QuestionForm({
   questions: Question[];
   currentIndex: number;
   subjectLabel: string;
+  isRevisit: boolean;
   existingAnswer: AnswerOut | undefined;
   onAnswered: (answer: AnswerOut) => void;
 }) {
@@ -122,7 +131,9 @@ function QuestionForm({
         note: note.trim() || null,
       });
       onAnswered(answer);
-      if (isLast) {
+      if (isRevisit) {
+        router.push(`/assessments/${runId}/report`);
+      } else if (isLast) {
         router.push(`/assessments/${runId}/review`);
       } else {
         router.push(`/assessments/${runId}/question/${questions[currentIndex + 1].indicator_id}`);
@@ -140,18 +151,25 @@ function QuestionForm({
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-6 py-10">
-      <div className="space-y-3">
+      {isRevisit ? (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            Question {currentIndex + 1} of {questions.length}
-          </span>
+          <span className="font-medium text-foreground">Updating your answer</span>
           <span className="truncate">{subjectLabel}</span>
         </div>
-        <FairSpectrum
-          principleGroups={questions.map((q) => q.principle_group)}
-          completedThrough={currentIndex}
-        />
-      </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>
+              Question {currentIndex + 1} of {questions.length}
+            </span>
+            <span className="truncate">{subjectLabel}</span>
+          </div>
+          <FairSpectrum
+            principleGroups={questions.map((q) => q.principle_group)}
+            completedThrough={currentIndex}
+          />
+        </div>
+      )}
 
       <div className="space-y-3">
         <h1 className="font-heading text-2xl font-semibold text-balance">{question.plain_language_question}</h1>
@@ -192,11 +210,20 @@ function QuestionForm({
       {submitError && <p className="text-sm text-destructive">{submitError}</p>}
 
       <div className="flex items-center justify-between pt-2">
-        <Button type="button" variant="outline" onClick={handleBack} disabled={currentIndex === 0 || submitting}>
-          Back
-        </Button>
+        {isRevisit ? (
+          <Button
+            type="button"
+            variant="outline"
+            nativeButton={false}
+            render={<Link href={`/assessments/${runId}/report`}>Cancel</Link>}
+          />
+        ) : (
+          <Button type="button" variant="outline" onClick={handleBack} disabled={currentIndex === 0 || submitting}>
+            Back
+          </Button>
+        )}
         <Button type="button" onClick={handleNext} disabled={!value || submitting}>
-          {submitting ? "Saving…" : isLast ? "Review answers" : "Next"}
+          {submitting ? "Saving…" : isRevisit ? "Save and return to report" : isLast ? "Review answers" : "Next"}
         </Button>
       </div>
     </main>

@@ -146,7 +146,11 @@ def test_report_generation_without_seeded_indicators_gives_clear_error(tmp_path)
         app.dependency_overrides.clear()
 
 
-def test_cannot_edit_answers_after_completion(client):
+def test_can_edit_answers_after_completion(client):
+    # Editing after completion is how revisiting a finding from the report
+    # works -- no longer blocked. This run never has a report generated, so
+    # the rescore-and-refresh path (tested live in test_report_live.py)
+    # should safely no-op rather than error.
     from app.adapters.fair.content import load_indicators
 
     run = _create_run(client)
@@ -159,4 +163,5 @@ def test_cannot_edit_answers_after_completion(client):
     assert r.json()["status"] == "completed"
 
     r = client.put(f"/assessments/{run_id}/answers/fair.f1-identifier", json={"value": "no", "label": "No, not true"})
-    assert r.status_code == 400
+    assert r.status_code == 200
+    assert r.json()["value"] == "no"

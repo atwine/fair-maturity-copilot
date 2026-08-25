@@ -4,13 +4,13 @@ A guided, plain-language FAIR data-maturity assessment tool for research organiz
 
 ## Status
 
-**In progress, feature-complete for v0.** Backend (engine, FAIR adapter content, remediation prompt, REST API) and frontend (the full 4-screen wizard) are both built and tested, including a live end-to-end run in a real browser against vLLM. Not yet deployed anywhere or piloted with a real ACE user — see [`ROADMAP.md`](ROADMAP.md) for what's left (an eval harness, deployment, the actual pilot) and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
+**In progress, feature-complete for v0 — merged to `main`.** Backend (engine, FAIR adapter content, remediation prompt, FAIRification plan synthesis, REST API) and frontend (assessment wizard, review, report, plan, and about pages) are both built and tested, including live end-to-end runs in a real browser against vLLM. Not yet deployed anywhere or piloted with a real ACE user — see [`ROADMAP.md`](ROADMAP.md) for what's left (an eval harness, deployment, the actual pilot) and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
 
 ## The problem
 
-The Research Data Alliance's FAIR Data Maturity Model defines 41 indicators for assessing how Findable, Accessible, Interoperable, and Reusable a dataset or research practice is. The one existing automated checker, [F-UJI](https://www.f-uji.net), covers 16 of the 41 — and its output is written for data engineers, not for a research group lead trying to figure out what to actually fix.
+The Research Data Alliance's FAIR Data Maturity Model defines 41 indicators for assessing how Findable, Accessible, Interoperable, and Reusable a dataset or research practice is. The existing automated checkers — [F-UJI](https://www.f-uji.net) and [FAIR Checker](https://fair-checker.france-bioinformatique.fr) — cover the machine-readable half of that (can a crawler resolve your metadata), and only ever talk to a computer, never a person; their output is written for data engineers, not for a research group lead trying to figure out what to actually fix. The two richer resources in this space — the [FAIR Cookbook](https://faircookbook.elixir-europe.org) (60+ detailed recipes) and [FAIR-DSM](https://fairplus.github.io/Data-Maturity/) (a 5-level enterprise maturity roadmap) — assume the reader already knows which part applies to them, or has real institutional infrastructure to build on.
 
-This tool is a guided version: walk a non-technical stakeholder through the assessment in plain language, score it, and use an LLM to turn every weak indicator into a specific, actionable next step.
+This tool is a guided version, for the gap none of those fill: walk a non-technical stakeholder through a 12-indicator subset of the RDA model in plain language, score it, use an LLM to turn every weak indicator into a specific actionable next step, and synthesize the whole set of gaps into one ordered FAIRification plan. See [`docs/WHY-THIS-TOOL.md`](docs/WHY-THIS-TOOL.md) (also live in-app at `/about`) for the full writeup of how this fits alongside the rest of the FAIR-tooling landscape.
 
 ## Architecture
 
@@ -60,6 +60,9 @@ Most tests (`tests/engine/`, `tests/adapters/fair/`) need no database or LLM con
 | POST | `/assessments/{id}/complete` | Mark a run complete — fails if any indicator is unanswered |
 | GET | `/assessments/{id}/report` | Generate (once) or fetch the cached report — plain-language findings + score |
 | POST | `/assessments/{id}/findings/{indicator_id}/regenerate` | Force one finding's remediation to be redone |
+| GET | `/assessments/{id}/plan` | Synthesize an ordered FAIRification plan from all of a run's open findings (one LLM call, not cached) |
+
+Answers can also be edited after an assessment is completed (`PUT /assessments/{id}/answers/{indicator_id}`) — this is how "revisiting" a finding from the report works: it re-scores that one indicator, regenerates its remediation, and refreshes the report's cached score.
 
 ## Getting started (frontend)
 
@@ -95,19 +98,21 @@ backend/
   app/
     engine/            — standard-agnostic core (models, scoring, remediation, LLM client)
     adapters/registry.py — maps adapter_id -> concrete adapter; the only file allowed to know FAIR exists
-    adapters/fair/      — FAIR-specific indicators.yaml, adapter, scoring rubric, remediation prompt
+    adapters/fair/      — FAIR-specific indicators.yaml, adapter, scoring rubric, remediation + plan prompts
     api/                — REST routes + schemas (see "API surface" above)
   fixtures/             — synthetic demo dataset profiles (no real ACE/TASO data touches an LLM)
   scripts/               — seed_indicators.py, run_demo_assessment.py
-  tests/                 — engine boundary, FAIR adapter, remediation grounding, fixture checks
+  tests/                 — engine boundary, FAIR adapter, remediation/plan grounding, fixture checks
   .env.example          — required env vars, including both LLM provider presets
 frontend/
-  app/                   — the 4-screen wizard (new, question/[indicatorId], review, report)
+  app/                   — new, question/[indicatorId] (also used to revisit a finding), review, report, plan, about
   lib/                   — api-client.ts + types.ts, mirroring the backend's REST contract
 docs/
   PLANNING_PROMPT.md    — the Plan Mode prompt that produced the v0 build plan
   DECISIONS.md          — why this project, and not the nine other ideas we scoped first
+  WHY-THIS-TOOL.md      — plain-language explainer: who this is for, and how it fits the wider FAIR-tooling landscape
   demo_reports/          — generated output from scripts/run_demo_assessment.py — what the tool actually produces
+  fairification-framework-Africa/ — reference material this tool's design was checked against (see DECISIONS.md v16-v18)
   background/           — the earlier idea-scoping reports (v1-v3)
 devlog/
   HANDOFF.md            — running session log, written so any agent (Claude, Devin) can resume cold

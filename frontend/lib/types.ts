@@ -81,3 +81,29 @@ export interface Plan {
   goal: string;
   steps: PlanStep[];
 }
+
+export type SkillLevel = "new_to_this" | "done_this_before";
+
+export interface MentorMessage {
+  role: "user" | "mentor";
+  content: string;
+  created_at: string;
+}
+
+export interface MentorConversation {
+  indicator_id: string;
+  skill_level: SkillLevel;
+  messages: MentorMessage[];
+}
+
+export interface MentorAction {
+  indicator_id: string;
+  new_value: AnswerValue;
+  new_severity: Finding["severity"];
+  new_score: number;
+}
+
+export interface MentorReply {
+  mentor_message: MentorMessage;
+  action_taken: MentorAction | null;
+}

@@ -1,6 +1,9 @@
-<img src="assets/logo.svg" alt="" width="72" height="72">
+<div align="center">
+  <img src="assets/logo.svg" alt="" width="72" height="72">
+  <h1>fair-maturity-copilot</h1>
+</div>
 
-# fair-maturity-copilot
+<div align="center">
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
@@ -9,6 +12,8 @@
 ![Postgres (Neon)](https://img.shields.io/badge/Postgres-Neon-00E599?logo=postgresql&logoColor=white)
 ![Status](https://img.shields.io/badge/status-v0%20in%20progress-yellow)
 ![License](https://img.shields.io/badge/license-unreleased-lightgrey)
+
+</div>
 
 A guided, plain-language FAIR data-maturity assessment tool for research organizations that don't have a data librarian on staff.
 
@@ -40,7 +45,22 @@ Built by [ACE](https://ace.ac.ug) (Africa Center of Excellence in Bioinformatics
 
 - **Backend**: FastAPI + SQLModel + Alembic, Postgres (Neon)
 - **Frontend**: Next.js 16 + React 19 + TypeScript + Tailwind v4 + shadcn/ui (built on Base UI, not Radix — its polymorphic components use a `render` prop, not `asChild`)
-- **LLM**: OpenAI-compatible client against on-prem vLLM (Llama 3.3 70B, AWQ INT4) — the default for both dev and pilot, since it's dedicated A100 infra and the actual production target. Local Ollama is kept as an offline fallback only, not routine dev — it was tried first but is slower in practice on this hardware. Provider is a config swap (`backend/.env`), never a code change.
+- **LLM**: any OpenAI-compatible provider — see [LLM provider](#llm-provider) below, this is a required setup step, not optional.
+
+## LLM provider
+
+**This tool needs a real LLM to function** — it's what turns each answer into plain-language feedback, synthesizes the FAIRification plan, and powers the mentor chat. Without one configured, the assessment wizard works but the report, plan, and mentor screens will fail. There's no default that "just works" out of the box for a new clone of this repo, so pick one:
+
+| Option | Cost | Setup | Good for |
+|---|---|---|---|
+| **[OpenRouter](https://openrouter.ai/keys)** (recommended default) | Pay-per-token, some free models | Sign up, copy an API key | Getting running in a minute, no hardware needed. Its ["auto router"](https://openrouter.ai/openrouter/auto) picks a good model per request for you — set `LLM_MODEL=openrouter/auto` instead of naming one |
+| **[Ollama](https://ollama.com)** | Free | Install locally, `ollama pull llama3.1:8b` | Trying this out at zero cost, or fully offline work — nothing leaves your machine |
+| **vLLM** | Your own GPU infra | Self-hosted | Teams with real GPU hardware who want to run their own model at scale — this is how ACE runs its own pilot, not something a casual clone of this repo needs |
+| **Anything else OpenAI-compatible** | Varies | Provider-specific | Together AI, Groq, Azure OpenAI, the OpenAI API itself, or any other provider that speaks the same `/chat/completions` shape |
+
+All of these are configured the exact same way — three values in `backend/.env` (`LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`), never a code change. See `backend/.env.example` for a ready-to-uncomment block for each option above.
+
+**Why a publicly hosted provider is a reasonable default here, not just a self-hosted one:** this tool never sends a dataset itself to the LLM — only the plain-language answers and free-text notes a person types into the assessment wizard. There's no file upload, no raw data, nothing sensitive by default leaving your machine beyond what you type into the form fields.
 
 ## Getting started (backend)
 
@@ -48,7 +68,7 @@ Built by [ACE](https://ace.ac.ug) (Africa Center of Excellence in Bioinformatics
 cd backend
 python -m venv .venv
 ./.venv/Scripts/python.exe -m pip install -e ".[dev]"   # Windows; drop the .exe path prefix on macOS/Linux
-cp .env.example .env   # then fill in DATABASE_URL (see the file for a free Neon setup)
+cp .env.example .env   # then fill in DATABASE_URL and an LLM provider block -- see "LLM provider" above
 ./.venv/Scripts/python.exe -m pytest tests/ -v
 ./.venv/Scripts/python.exe scripts/seed_indicators.py   # loads the 12 FAIR indicators into the DB
 ```

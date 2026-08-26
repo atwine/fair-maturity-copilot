@@ -1,3 +1,5 @@
+<img src="assets/logo.svg" alt="" width="72" height="72">
+
 # fair-maturity-copilot
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
@@ -127,6 +129,8 @@ docs/
   background/           — the earlier idea-scoping reports (v1-v3)
 devlog/
   HANDOFF.md            — running session log, written so any agent (Claude, Devin) can resume cold
+assets/
+  logo.svg              — the brand mark (README); kept in sync by hand with frontend/app/icon.svg and components/logo-mark.tsx
 ROADMAP.md              — what's built, what's next, what's tracked-but-parked
 CHANGELOG.md            — dated record of what shipped
 ```

@@ -16,9 +16,12 @@ class Settings(BaseSettings):
     # environments set DATABASE_URL in .env.
     database_url: str = "sqlite:///./dev.db"
 
-    # vLLM (dedicated A100 infra) is the default, not local Ollama — it's
-    # both the actual production target and faster in practice than Ollama
-    # on this hardware. Override in .env to fall back to Ollama offline.
+    # vLLM (dedicated A100 infra) is the default — it's the actual
+    # production target, faster in practice than Ollama on this hardware,
+    # and (unlike openrouter/auto, deliberately avoided — see issue #14 and
+    # docs/DECISIONS.md) always the same model, never a router's per-request
+    # pick. Override in .env to fall back to a pinned OpenRouter model or
+    # Ollama offline.
     llm_base_url: str = "http://10.35.50.41:8000/v1"
     llm_model: str = "ibnzterrell/Meta-Llama-3.3-70B-Instruct-AWQ-INT4"
     llm_api_key: str = "not-needed"

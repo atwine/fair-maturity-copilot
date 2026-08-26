@@ -55,14 +55,16 @@ Built by [ACE](https://ace.ac.ug) (Africa Center of Excellence in Bioinformatics
 
 | Option | Cost | Setup | Good for |
 |---|---|---|---|
-| **[OpenRouter](https://openrouter.ai/keys)** (recommended default) | Pay-per-token, some free models | Sign up, copy an API key | Getting running in a minute, no hardware needed. Its ["auto router"](https://openrouter.ai/openrouter/auto) picks a good model per request for you — set `LLM_MODEL=openrouter/auto` instead of naming one |
-| **[Ollama](https://ollama.com)** | Free | Install locally, `ollama pull llama3.1:8b` | Trying this out at zero cost, or fully offline work — nothing leaves your machine |
-| **vLLM** | Your own GPU infra | Self-hosted | Teams with real GPU hardware who want to run their own model at scale — this is how ACE runs its own pilot, not something a casual clone of this repo needs |
+| **vLLM** (this project's own default) | Your own GPU infra, ~$0 marginal cost once running | Self-hosted | Teams with real GPU hardware who want to run their own model at scale, with consistent behavior instead of a router's per-request pick — this is how ACE runs its own pilot |
+| **[OpenRouter](https://openrouter.ai/keys)** (recommended if you don't have your own GPU infra) | Pay-per-token | Sign up, copy an API key, **pin a specific model** | Getting running in a minute, no hardware needed |
+| **[Ollama](https://ollama.com)** | Free | Install locally, `ollama pull llama3.1:8b` | Trying this out at zero cost, or fully offline work — nothing leaves your machine. Only really viable for lightweight use: small quantized local models struggle with this app's larger prompts (the mentor's system prompt in particular) |
 | **Anything else OpenAI-compatible** | Varies | Provider-specific | Together AI, Groq, Azure OpenAI, the OpenAI API itself, or any other provider that speaks the same `/chat/completions` shape |
 
-All of these are configured the exact same way — three values in `backend/.env` (`LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`), never a code change. See `backend/.env.example` for a ready-to-uncomment block for each option above.
+**Don't use OpenRouter's `openrouter/auto` model.** It picks a different model per request, which sounds convenient but isn't safe to depend on here: it can silently route a request to a reasoning model that spends its whole completion-token budget "thinking" and returns an empty reply — this happened twice in testing (see `docs/DECISIONS.md`). Name a specific model instead. If you're using OpenRouter as a fallback for a self-hosted vLLM box, pin it to the *same* model your vLLM box runs, so falling back doesn't also mean a behavior change.
 
-**Why a publicly hosted provider is a reasonable default here, not just a self-hosted one:** this tool never sends a dataset itself to the LLM — only the plain-language answers and free-text notes a person types into the assessment wizard. There's no file upload, no raw data, nothing sensitive by default leaving your machine beyond what you type into the form fields.
+All of these are configured the exact same way — three values in `backend/.env` (`LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`), never a code change. See `backend/.env.example` for a ready-to-uncomment block for each option above. A cost comparison with real numbers is tracked in [issue #19](https://github.com/atwine/fair-maturity-copilot/issues/19), not yet written up here.
+
+**Why a publicly hosted provider is a reasonable option here, not just a self-hosted one:** this tool never sends a dataset itself to the LLM — only the plain-language answers and free-text notes a person types into the assessment wizard. There's no file upload, no raw data, nothing sensitive by default leaving your machine beyond what you type into the form fields. That said, for anything involving multiple organizations' data practices (see the multi-site consortium work tracked in issues #16/#17), we lean toward self-hosted as the more conservative default.
 
 ## Getting started (backend)
 

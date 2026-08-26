@@ -476,3 +476,73 @@ The mentor scoped in `docs/DECISIONS.md` v19 was implemented in two parts, both 
 **Where this leaves things:** `fix/alembic-baseline-migration` is being merged into `development`, then `development` re-merged into `staging` properly, per the same review-then-confirm-before-push discipline as every other promotion step. `main` (via PR, second independent review) is the next step after that — not started yet.
 
 **Open questions carried forward:** same as above (promotion cadence, Neon production plan decision), plus: whether the mentor's "confirm only one indicator per reply" simplification (noted in the plan as accepted, not a blocker) turns out to matter once someone actually uses the multi-indicator chat in practice — worth watching for during the eventual reviewer feedback pass, not something to preemptively fix.
+
+---
+
+## 2026-08-26 — First production promotion this session, completed: `main` is now live
+
+**The full pipeline ran end to end for the first time this session**, each step confirmed before it happened, per the standing branching discipline:
+
+1. `development` pushed (the fixed baseline migration included).
+2. `development` re-merged into `staging` cleanly (this time as a proper merge, not uncommitted edits) and pushed.
+3. **Second, independent review** — Open Code Review's delegate mode, run directly against the `staging...main` diff (not the same tool/method as the two earlier self-reviews, per the project's own two-review-methods-before-main convention). Targeted the rule categories the earlier reviews hadn't specifically swept for: mutable default arguments, `is`/`is not` misuse, bare `except`, resource-management leaks, and the frontend-specific rules (`any` types, `==` vs `===`, nested ternaries, hook rules, XSS-sensitive patterns). Also checked `package.json` for unpinned versions and `alembic.ini` for accidentally-committed secrets. No new High/Medium findings — everything real had already surfaced in the two earlier rounds.
+4. [PR #11](https://github.com/atwine/fair-maturity-copilot/pull/11) opened, `staging → main`, with the review trail summarized in the PR description.
+5. **Merged only on the user's explicit go-ahead** — the open PR was not itself treated as permission, exactly as `README.md`'s branching convention and `AGENTS.md`'s hard limits require.
+
+`main` is now fast-forwarded locally to match. This is the project's first real production merge since the original v0 scaffold (`docs/DECISIONS.md`'s "one documented exception" entry) — everything from here on is a genuine second promotion, not a special case.
+
+**What's actually live on `main` now:** real Postgres (Neon) instead of the original SQLite-only setup, the full mentor chat feature (Checkpoint 9, re-scoped to per-plan-step during this same promotion prep via issue #9), the start-new-assessment navigation fix (issue #10), and the corrected Alembic migration chain that can now actually bootstrap a fresh database — which matters immediately, since Checkpoint 7 (deploy) is the natural next step and would have silently failed on this exact bug otherwise.
+
+**Nothing has actually been deployed anywhere yet** — `main` being current doesn't mean Railway or any hosting is live; Checkpoint 7 is still open. What this promotion *does* unlock: whenever Checkpoint 7 happens, it can deploy from a `main` that's actually current and that this session has now proven can bootstrap cleanly from nothing.
+
+**Open questions carried forward:** unchanged from the entry above.
+
+---
+
+## 2026-08-26 — Issue #8: logo picked, wired into the app on `development`
+
+**Ideation first, per the user's ask** — 10 logomark concepts across two rounds, each with a written Claude Design prompt and a rendered low-fi SVG preview so the user could react to real shapes before anything was built. User picked concept #6, "Assessment Lens" (a magnifying glass over a small connected-dot cluster), and asked for it built out properly in Claude Design first (a three-view canvas: icon, favicon-legibility test, wordmark lockup), then wired into the real app so it could be seen live before calling it final.
+
+**Wired in for real, not left as a mockup:** `frontend/app/icon.svg` (Next's favicon convention), `frontend/components/logo-mark.tsx` (used in `SiteHeader` on every screen), a `frontend/app/favicon.ico` regenerated natively at 16/32/48px via a small PIL script (not a naive downscale — the 16px version drops the fine details that turn to noise that small, same simplification already tested in the design canvas), and `assets/logo.svg` for `README.md`. Checked the app's real design tokens in `globals.css` before building anything — the mockup's palette already matched exactly (`#1f5c54`, `#b9862f`, `#f2f1ea`), nothing needed adjusting.
+
+**A real bug, caught by testing live:** the hand-written SVG comments used this project's normal `--` dash style, which XML/HTML comments don't allow anywhere in the body except right before the closing `-->`. Chrome rejected `/icon.svg` outright. Only caught by actually opening the URL in the browser and reading the parse-error page — reading the markup itself gave no indication anything was wrong. Fixed and reverified live.
+
+**Deliberately left out of the landing page hero** — it already has its own signature illustration (the four FAIR-letter badges); the header, present on every screen including that one, already carries the new mark. Full account in `docs/DECISIONS.md` v24.
+
+**This is on `feature/app-logo`, not yet merged into `development`.** The user's own words were "generally I'll go with this" — a strong lean, not a final sign-off — so this landed on a branch specifically to be looked at live before anything is called final. Issue #8 stays open until that happens; standard next steps once confirmed: self-review, merge, confirm before pushing, close #8.
+
+**Update:** confirmed live, merged, pushed, issue #8 closed.
+
+---
+
+## 2026-08-26 — README's LLM gap fixed; OpenRouter opened up as the recommended provider
+
+**A real documentation gap, caught by the user, not by any review pass this session:** `README.md` never actually said this tool needs an LLM to function — the only mention was one "Tech stack" bullet framed entirely around ACE's own on-prem vLLM box, giving a general reader no signal they'd need to bring their own provider or how. Landed at the same time as an unrelated, useful prompt: the user had just heard about OpenRouter's "auto router" (one model slug, `openrouter/auto`, that picks a good model per request instead of you naming one) and asked how to use it here.
+
+**Checked, not assumed:** confirmed via web search that `openrouter/auto` is real, current, and free to use. Then confirmed the actual code needed zero changes — `llm_client.py` was already a plain OpenAI-compatible client parameterized by three env vars, exactly the "provider is a config swap, never a code change" design already in place since Checkpoint 3. This was purely a documentation and `.env.example` gap.
+
+**Fixed:** `README.md` gained a real "LLM provider" section — a comparison table of OpenRouter (recommended default, includes the auto-router shortcut), Ollama (free/local), vLLM (relabeled explicitly as ACE-internal, not a general default), and any other OpenAI-compatible endpoint — plus the reasoning for why a hosted provider is fine here (no dataset ever reaches the LLM, only typed answers/notes). `backend/.env.example` reordered with OpenRouter first and active, per the user's explicit ask. `config.py`'s docstring updated to match; its live Python default (still ACE's vLLM box) deliberately left alone — a separate decision from documenting the options.
+
+**Open question, asked rather than guessed at:** whether "give people the choice to connect their models" means this (better deploy-time docs/config) or an actual in-app settings screen where each end-user brings their own key at runtime — a materially bigger feature involving where a key lives and whether it ever touches the backend. Waiting on the user's answer before building anything there.
+
+**This is on `docs/llm-provider-options`, not yet merged.**
+
+**Update:** the user answered directly — Option A (deploy-time provider config, this pass) now, Option B (in-app end-user settings screen) deferred and filed as [#12](https://github.com/atwine/fair-maturity-copilot/issues/12) for whenever it's actually scoped. Merged to `development`.
+
+---
+
+## 2026-08-26 — OpenRouter tried for real, a reasoning-model bug found and fixed, mentor markdown opened up
+
+**Not left as documentation only.** The user added a real OpenRouter key and asked to actually switch to it and test it — speed, and specifically whether it holds up for the mentor's multi-turn chat — plus, separately, let the mentor use full markdown instead of only bold/italics.
+
+**Tested numerically, the same way as earlier this session against vLLM:** a throwaway script (`generate_chat` timing over a 3-turn mock conversation) rather than eyeballing it through the UI. Result: OpenRouter is not slower — 94s vs vLLM's 93.5s for a full 12-finding report, and noticeably faster per mentor message (~5s vs ~9s).
+
+**Found a real bug doing this, not a synthetic one.** `openrouter/auto` can route a request to a reasoning model (`deepseek/deepseek-v4-flash-0731` here), which spends tokens on invisible "thinking" before writing anything visible — and this app's token budgets, sized against vLLM's plain model, could be entirely consumed by that hidden reasoning. The result wasn't an error: `finish_reason: "length"` and a completely empty visible reply, 2 of 3 test turns. Diagnosed precisely with a debug script printing `response.model`, `finish_reason`, and `usage.completion_tokens_details.reasoning_tokens` — confirmed the entire 400-token budget went to reasoning on the failing turns. First fix: raised `max_tokens` everywhere (`llm_client.py`'s `generate`/`generate_chat`: 300/400 → 1200; `plan.py`'s override: 700 → 1800). Reran the latency script three more times: 9/9 turns succeeded.
+
+**That wasn't actually the end of it.** Running the full backend test suite afterward (against real OpenRouter for the first time) turned up the same empty-reply bug again — twice, both on the same remediation prompt (`fair.r1-1-license`), even at the raised 1200 cap. Direct repro confirmed the same model can spend 900-1200+ tokens reasoning about a *specific* prompt, no matter the cap. Realized there's no fixed number that's safe against an auto-router picking a different reasoning model per request — so the real fix isn't a bigger constant, it's a retry: `generate()`/`generate_chat()` now detect the exact signature (empty content + `finish_reason: "length"`) and retry once with a much larger budget (4000) before giving up. Verified against the failing prompt directly: 5/5 succeeded after the fix.
+
+**Mentor markdown opened up** from bold/italics-only to the full set — headings, lists, links, code, tables. `remark-gfm` added (react-markdown v10 doesn't include GFM extras like tables by default); the frontend's markdown allowlist removed in favor of real scoped styling for a chat bubble; `mentor_system.jinja` now tells the mentor to use structure only when it genuinely helps, not by default. `MENTOR_PROMPT_VERSION` → `fair-mentor-v3`.
+
+**A gotcha caught mid-test, worth remembering:** after editing the `.jinja` prompt template, the mentor kept replying with the *old* rules — uvicorn's `--reload` only watches `.py` files, so the template edit was real but invisible to the running process until a manual restart. Compounded by a repeat of the exact same stale-`netstat` false alarm hit earlier this session (a killed PID still showing `LISTENING`; `Get-Process` confirmed it was actually dead). Both resolved with a clean process restart, then reverified live.
+
+**This work is on `feature/mentor-markdown-and-token-budgets`**, following on from `Option A for now, scope B later` and the user's direct "Yes, go ahead" approving the token-budget fix once the bug was diagnosed and explained.

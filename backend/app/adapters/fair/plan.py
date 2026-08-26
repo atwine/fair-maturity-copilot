@@ -96,7 +96,12 @@ def build_fairification_plan(*, findings: list[Finding], indicators_by_id: dict[
             for f in open_findings
         ],
     )
-    text = generate(prompt, max_tokens=700)
+    # A plan can cover up to 12 findings across several steps, so it's the
+    # longest single generation in this app -- given generously (see
+    # llm_client.py's module docstring for why: a reasoning model spends
+    # tokens "thinking" before writing anything visible, and a tight
+    # budget here would risk a truncated plan mid-step).
+    text = generate(prompt, max_tokens=1800)
     valid_ids = {f.indicator_id for f in open_findings}
     plan = _parse_plan(text, valid_ids)
     if not plan.steps:

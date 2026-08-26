@@ -17,7 +17,7 @@ _PROMPT_DIR = Path(__file__).parent / "prompts"
 _env = Environment(loader=FileSystemLoader(str(_PROMPT_DIR)), trim_blocks=True, lstrip_blocks=True)
 _template = _env.get_template("mentor_system.jinja")
 
-MENTOR_PROMPT_VERSION = "fair-mentor-v2"  # v2: scoped to a plan step (issue #9), not a single indicator
+MENTOR_PROMPT_VERSION = "fair-mentor-v3"  # v3: full markdown allowed (was bold/italics only), v2: scoped to a plan step (issue #9)
 
 _VALID_SKILL_LEVELS = {"new_to_this", "done_this_before"}
 

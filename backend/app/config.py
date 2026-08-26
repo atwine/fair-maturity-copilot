@@ -3,8 +3,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     """All environment-driven config in one place. Nothing below should ever
-    be hardcoded elsewhere — that's what keeps the LLM provider swap (vLLM
-    <-> local Ollama fallback) a config change, not a code change."""
+    be hardcoded elsewhere — that's what keeps swapping LLM providers
+    (OpenRouter, Ollama, vLLM, or any other OpenAI-compatible endpoint —
+    see README.md's "LLM provider" section) a config change, never a code
+    change."""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

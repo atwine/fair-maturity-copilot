@@ -510,3 +510,19 @@ The mentor scoped in `docs/DECISIONS.md` v19 was implemented in two parts, both 
 **Deliberately left out of the landing page hero** — it already has its own signature illustration (the four FAIR-letter badges); the header, present on every screen including that one, already carries the new mark. Full account in `docs/DECISIONS.md` v24.
 
 **This is on `feature/app-logo`, not yet merged into `development`.** The user's own words were "generally I'll go with this" — a strong lean, not a final sign-off — so this landed on a branch specifically to be looked at live before anything is called final. Issue #8 stays open until that happens; standard next steps once confirmed: self-review, merge, confirm before pushing, close #8.
+
+**Update:** confirmed live, merged, pushed, issue #8 closed.
+
+---
+
+## 2026-08-26 — README's LLM gap fixed; OpenRouter opened up as the recommended provider
+
+**A real documentation gap, caught by the user, not by any review pass this session:** `README.md` never actually said this tool needs an LLM to function — the only mention was one "Tech stack" bullet framed entirely around ACE's own on-prem vLLM box, giving a general reader no signal they'd need to bring their own provider or how. Landed at the same time as an unrelated, useful prompt: the user had just heard about OpenRouter's "auto router" (one model slug, `openrouter/auto`, that picks a good model per request instead of you naming one) and asked how to use it here.
+
+**Checked, not assumed:** confirmed via web search that `openrouter/auto` is real, current, and free to use. Then confirmed the actual code needed zero changes — `llm_client.py` was already a plain OpenAI-compatible client parameterized by three env vars, exactly the "provider is a config swap, never a code change" design already in place since Checkpoint 3. This was purely a documentation and `.env.example` gap.
+
+**Fixed:** `README.md` gained a real "LLM provider" section — a comparison table of OpenRouter (recommended default, includes the auto-router shortcut), Ollama (free/local), vLLM (relabeled explicitly as ACE-internal, not a general default), and any other OpenAI-compatible endpoint — plus the reasoning for why a hosted provider is fine here (no dataset ever reaches the LLM, only typed answers/notes). `backend/.env.example` reordered with OpenRouter first and active, per the user's explicit ask. `config.py`'s docstring updated to match; its live Python default (still ACE's vLLM box) deliberately left alone — a separate decision from documenting the options.
+
+**Open question, asked rather than guessed at:** whether "give people the choice to connect their models" means this (better deploy-time docs/config) or an actual in-app settings screen where each end-user brings their own key at runtime — a materially bigger feature involving where a key lives and whether it ever touches the backend. Waiting on the user's answer before building anything there.
+
+**This is on `docs/llm-provider-options`, not yet merged.**

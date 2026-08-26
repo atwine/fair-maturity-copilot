@@ -526,3 +526,23 @@ The mentor scoped in `docs/DECISIONS.md` v19 was implemented in two parts, both 
 **Open question, asked rather than guessed at:** whether "give people the choice to connect their models" means this (better deploy-time docs/config) or an actual in-app settings screen where each end-user brings their own key at runtime — a materially bigger feature involving where a key lives and whether it ever touches the backend. Waiting on the user's answer before building anything there.
 
 **This is on `docs/llm-provider-options`, not yet merged.**
+
+**Update:** the user answered directly — Option A (deploy-time provider config, this pass) now, Option B (in-app end-user settings screen) deferred and filed as [#12](https://github.com/atwine/fair-maturity-copilot/issues/12) for whenever it's actually scoped. Merged to `development`.
+
+---
+
+## 2026-08-26 — OpenRouter tried for real, a reasoning-model bug found and fixed, mentor markdown opened up
+
+**Not left as documentation only.** The user added a real OpenRouter key and asked to actually switch to it and test it — speed, and specifically whether it holds up for the mentor's multi-turn chat — plus, separately, let the mentor use full markdown instead of only bold/italics.
+
+**Tested numerically, the same way as earlier this session against vLLM:** a throwaway script (`generate_chat` timing over a 3-turn mock conversation) rather than eyeballing it through the UI. Result: OpenRouter is not slower — 94s vs vLLM's 93.5s for a full 12-finding report, and noticeably faster per mentor message (~5s vs ~9s).
+
+**Found a real bug doing this, not a synthetic one.** `openrouter/auto` can route a request to a reasoning model (`deepseek/deepseek-v4-flash-0731` here), which spends tokens on invisible "thinking" before writing anything visible — and this app's token budgets, sized against vLLM's plain model, could be entirely consumed by that hidden reasoning. The result wasn't an error: `finish_reason: "length"` and a completely empty visible reply, 2 of 3 test turns. Diagnosed precisely with a debug script printing `response.model`, `finish_reason`, and `usage.completion_tokens_details.reasoning_tokens` — confirmed the entire 400-token budget went to reasoning on the failing turns. First fix: raised `max_tokens` everywhere (`llm_client.py`'s `generate`/`generate_chat`: 300/400 → 1200; `plan.py`'s override: 700 → 1800). Reran the latency script three more times: 9/9 turns succeeded.
+
+**That wasn't actually the end of it.** Running the full backend test suite afterward (against real OpenRouter for the first time) turned up the same empty-reply bug again — twice, both on the same remediation prompt (`fair.r1-1-license`), even at the raised 1200 cap. Direct repro confirmed the same model can spend 900-1200+ tokens reasoning about a *specific* prompt, no matter the cap. Realized there's no fixed number that's safe against an auto-router picking a different reasoning model per request — so the real fix isn't a bigger constant, it's a retry: `generate()`/`generate_chat()` now detect the exact signature (empty content + `finish_reason: "length"`) and retry once with a much larger budget (4000) before giving up. Verified against the failing prompt directly: 5/5 succeeded after the fix.
+
+**Mentor markdown opened up** from bold/italics-only to the full set — headings, lists, links, code, tables. `remark-gfm` added (react-markdown v10 doesn't include GFM extras like tables by default); the frontend's markdown allowlist removed in favor of real scoped styling for a chat bubble; `mentor_system.jinja` now tells the mentor to use structure only when it genuinely helps, not by default. `MENTOR_PROMPT_VERSION` → `fair-mentor-v3`.
+
+**A gotcha caught mid-test, worth remembering:** after editing the `.jinja` prompt template, the mentor kept replying with the *old* rules — uvicorn's `--reload` only watches `.py` files, so the template edit was real but invisible to the running process until a manual restart. Compounded by a repeat of the exact same stale-`netstat` false alarm hit earlier this session (a killed PID still showing `LISTENING`; `Get-Process` confirmed it was actually dead). Both resolved with a clean process restart, then reverified live.
+
+**This work is on `feature/mentor-markdown-and-token-budgets`**, following on from `Option A for now, scope B later` and the user's direct "Yes, go ahead" approving the token-budget fix once the bug was diagnosed and explained.

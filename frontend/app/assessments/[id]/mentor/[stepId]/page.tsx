@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Send } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,30 +14,25 @@ import { PrincipleChip } from "@/components/fair-spectrum";
 import { api, ApiError } from "@/lib/api-client";
 import type { MentorAction, MentorConversation, MentorMessage, PlanIndicatorRef, PlanStep, SkillLevel } from "@/lib/types";
 
-// Only bold/italics are rendered -- everything else (headings, links, lists,
-// code, images, tables) is unwrapped back to plain text rather than
-// rendered as its element, per an explicit choice to keep chat replies
-// looking like plain-language prose, not a formatted document. The mentor's
-// own system prompt (mentor_system.jinja) is told to only ever use
-// **bold**/*italics* for exactly this reason -- the two are kept in sync.
-const MARKDOWN_DISALLOWED_ELEMENTS = [
-  "h1",
-  "h2",
-  "h3",
-  "h4",
-  "h5",
-  "h6",
-  "a",
-  "img",
-  "ul",
-  "ol",
-  "li",
-  "blockquote",
-  "code",
-  "pre",
-  "hr",
-  "table",
-];
+// Full markdown, not just bold/italics -- the model decides when structure
+// (a short list, a code snippet, a comparison table) genuinely helps versus
+// when a plain sentence does, per mentor_system.jinja's formatting
+// guidance. remark-gfm adds tables/strikethrough/task lists on top of
+// react-markdown's default CommonMark support. The child-selector styles
+// below exist because none of this had ever needed rendering inside a
+// chat bubble before -- headings especially are scaled down so a mentor
+// reply can't visually overpower the conversation it's part of.
+const MENTOR_MARKDOWN_CLASSES =
+  "[&_h1]:text-[0.95em] [&_h1]:font-semibold [&_h1]:mt-2 [&_h1]:mb-1 " +
+  "[&_h2]:text-[0.95em] [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 " +
+  "[&_h3]:text-[0.95em] [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1 " +
+  "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-1 [&_li]:my-0.5 " +
+  "[&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 " +
+  "[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[0.85em] [&_code]:font-mono " +
+  "[&_pre]:my-1.5 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-2 [&_pre_code]:bg-transparent [&_pre_code]:p-0 " +
+  "[&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-2 [&_blockquote]:italic [&_blockquote]:text-muted-foreground " +
+  "[&_table]:my-1.5 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-border [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1 " +
+  "[&_hr]:my-2 [&_hr]:border-border";
 
 // A "someone is typing…" indicator: just a chat bubble with three bouncing
 // dots (the wave). The bubble shows for a while, disappears for a couple
@@ -280,13 +276,11 @@ function ChatBubble({ message }: { message: MentorMessage }) {
     <div className={`flex ${isMentor ? "justify-start" : "justify-end"}`}>
       <div
         className={`max-w-[85%] rounded-lg px-3.5 py-2.5 text-sm leading-relaxed [&_p]:m-0 [&_p+p]:mt-2 ${
-          isMentor ? "bg-card ring-1 ring-foreground/10" : "bg-primary text-primary-foreground"
+          isMentor ? `bg-card ring-1 ring-foreground/10 ${MENTOR_MARKDOWN_CLASSES}` : "bg-primary text-primary-foreground"
         }`}
       >
         {isMentor ? (
-          <ReactMarkdown disallowedElements={MARKDOWN_DISALLOWED_ELEMENTS} unwrapDisallowed>
-            {message.content}
-          </ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
         ) : (
           <span className="whitespace-pre-wrap">{message.content}</span>
         )}

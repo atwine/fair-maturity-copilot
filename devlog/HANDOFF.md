@@ -496,3 +496,17 @@ The mentor scoped in `docs/DECISIONS.md` v19 was implemented in two parts, both 
 **Nothing has actually been deployed anywhere yet** — `main` being current doesn't mean Railway or any hosting is live; Checkpoint 7 is still open. What this promotion *does* unlock: whenever Checkpoint 7 happens, it can deploy from a `main` that's actually current and that this session has now proven can bootstrap cleanly from nothing.
 
 **Open questions carried forward:** unchanged from the entry above.
+
+---
+
+## 2026-08-26 — Issue #8: logo picked, wired into the app on `development`
+
+**Ideation first, per the user's ask** — 10 logomark concepts across two rounds, each with a written Claude Design prompt and a rendered low-fi SVG preview so the user could react to real shapes before anything was built. User picked concept #6, "Assessment Lens" (a magnifying glass over a small connected-dot cluster), and asked for it built out properly in Claude Design first (a three-view canvas: icon, favicon-legibility test, wordmark lockup), then wired into the real app so it could be seen live before calling it final.
+
+**Wired in for real, not left as a mockup:** `frontend/app/icon.svg` (Next's favicon convention), `frontend/components/logo-mark.tsx` (used in `SiteHeader` on every screen), a `frontend/app/favicon.ico` regenerated natively at 16/32/48px via a small PIL script (not a naive downscale — the 16px version drops the fine details that turn to noise that small, same simplification already tested in the design canvas), and `assets/logo.svg` for `README.md`. Checked the app's real design tokens in `globals.css` before building anything — the mockup's palette already matched exactly (`#1f5c54`, `#b9862f`, `#f2f1ea`), nothing needed adjusting.
+
+**A real bug, caught by testing live:** the hand-written SVG comments used this project's normal `--` dash style, which XML/HTML comments don't allow anywhere in the body except right before the closing `-->`. Chrome rejected `/icon.svg` outright. Only caught by actually opening the URL in the browser and reading the parse-error page — reading the markup itself gave no indication anything was wrong. Fixed and reverified live.
+
+**Deliberately left out of the landing page hero** — it already has its own signature illustration (the four FAIR-letter badges); the header, present on every screen including that one, already carries the new mark. Full account in `docs/DECISIONS.md` v24.
+
+**This is on `feature/app-logo`, not yet merged into `development`.** The user's own words were "generally I'll go with this" — a strong lean, not a final sign-off — so this landed on a branch specifically to be looked at live before anything is called final. Issue #8 stays open until that happens; standard next steps once confirmed: self-review, merge, confirm before pushing, close #8.

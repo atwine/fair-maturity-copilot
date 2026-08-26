@@ -27,6 +27,8 @@ The Research Data Alliance's FAIR Data Maturity Model defines 41 indicators for 
 
 This tool is a guided version, for the gap none of those fill: walk a non-technical stakeholder through a 12-indicator subset of the RDA model in plain language, score it, use an LLM to turn every weak indicator into a specific actionable next step, and synthesize the whole set of gaps into one ordered FAIRification plan. See [`docs/WHY-THIS-TOOL.md`](docs/WHY-THIS-TOOL.md) (also live in-app at `/about`) for the full writeup of how this fits alongside the rest of the FAIR-tooling landscape.
 
+For a single self-contained document covering the project's origin story, value proposition, current state, and open questions — written for brainstorming with a fresh collaborator (human or AI) rather than for implementation — see [`docs/BRAINSTORMING-BRIEF.md`](docs/BRAINSTORMING-BRIEF.md).
+
 ## Architecture
 
 Built as a reusable **engine + adapter** pattern, not a one-off script:

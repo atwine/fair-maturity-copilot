@@ -38,9 +38,9 @@ def get_client() -> OpenAI:
     return OpenAI(base_url=settings.llm_base_url, api_key=settings.llm_api_key)
 
 
-def generate(prompt: str, *, max_tokens: int = 1200, temperature: float = 0.4) -> str:
-    client = get_client()
-    messages = [{"role": "user", "content": prompt}]
+def _complete(client: OpenAI, messages: list[dict], *, max_tokens: int, temperature: float) -> str:
+    """Shared by generate()/generate_chat(): one completion call, with the
+    single empty-reply retry described in this module's docstring."""
     response = client.chat.completions.create(
         model=settings.llm_model,
         messages=messages,
@@ -58,6 +58,11 @@ def generate(prompt: str, *, max_tokens: int = 1200, temperature: float = 0.4) -
         )
         text = (response.choices[0].message.content or "").strip()
     return text
+
+
+def generate(prompt: str, *, max_tokens: int = 1200, temperature: float = 0.4) -> str:
+    client = get_client()
+    return _complete(client, [{"role": "user", "content": prompt}], max_tokens=max_tokens, temperature=temperature)
 
 
 def generate_chat(messages: list[dict], *, max_tokens: int = 1200, temperature: float = 0.4) -> str:
@@ -66,20 +71,4 @@ def generate_chat(messages: list[dict], *, max_tokens: int = 1200, temperature: 
     full running history (system + prior turns + the newest user message),
     same OpenAI-compatible shape every provider here accepts."""
     client = get_client()
-    response = client.chat.completions.create(
-        model=settings.llm_model,
-        messages=messages,
-        max_tokens=max_tokens,
-        temperature=temperature,
-    )
-    choice = response.choices[0]
-    text = (choice.message.content or "").strip()
-    if not text and choice.finish_reason == "length" and max_tokens < _RETRY_MAX_TOKENS:
-        response = client.chat.completions.create(
-            model=settings.llm_model,
-            messages=messages,
-            max_tokens=_RETRY_MAX_TOKENS,
-            temperature=temperature,
-        )
-        text = (response.choices[0].message.content or "").strip()
-    return text
+    return _complete(client, messages, max_tokens=max_tokens, temperature=temperature)

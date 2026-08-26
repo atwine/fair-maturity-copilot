@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LogoMark } from "@/components/logo-mark";
 
 // Shared chrome across all screens -- part of the design-critique fix: each
 // page used to float alone in an unframed viewport, which read as
@@ -11,7 +12,8 @@ export function SiteHeader() {
   return (
     <header className="border-t-4 border-t-primary">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-        <Link href="/" className="font-heading text-lg font-semibold tracking-tight text-foreground">
+        <Link href="/" className="flex items-center gap-2.5 font-heading text-lg font-semibold tracking-tight text-foreground">
+          <LogoMark className="size-7 shrink-0" />
           FAIR Maturity Copilot
         </Link>
         <Link href="/about" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">

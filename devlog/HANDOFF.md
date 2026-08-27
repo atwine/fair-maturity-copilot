@@ -626,3 +626,61 @@ The mentor scoped in `docs/DECISIONS.md` v19 was implemented in two parts, both 
 **For any agent reading this in a future session:** if you're on Devin and about to promote `development` → `staging`, stop. Build and test on Devin, merge to `development` locally, push to `origin/development`, then tell the project owner to run the `code-review` skill on Claude Code before the staging promotion. Do not merge to staging and push without that review having happened — this is the same hard limit `AGENTS.md` already sets (explicit go-ahead required), with the added specificity that the go-ahead should follow a Claude Code review pass.
 
 **Current state at time of writing:** `staging` was merged locally (commit `e5937fd`, issue #6 — repository recommendations) but **not yet pushed to `origin/staging`**, pending this process being followed. The project owner may choose to push it as-is (the manual review passed, 60/60 tests green) or run the Claude Code review first — their call.
+
+---
+
+## 2026-08-26 — Issue #18 built (navigator), all docs updated, project handed back to Claude
+
+**What was built this session (Devin):**
+
+Issue #18 — a "which tool fits your situation" navigator extending `/about` — was built on `feature/navigator`, merged locally into `development`, and is ready for push. Full account in `docs/DECISIONS.md` v31.
+
+- A new `/navigator` route (`frontend/app/navigator/page.tsx`) and client component (`frontend/components/navigator.tsx`) — a 6-question branching tree routing users to the right FAIR tool based on their situation.
+- 7 destination recommendations, each with a mini-roadmap format (what/why/how/next + newbie/experienced split): this tool, FAIR-Aware, F-UJI, the RDA FAIR Data Maturity Model, CoreTrustSeal, AgroPortal/O'FAIRe, the ARDC FAIR Data Framework.
+- All external URLs verified live — several broken links caught and corrected during development.
+- Linked from three places: `SiteHeader` ("Which tool fits?"), `/about` page's landscape section, and a secondary link on the landing page below "Start an assessment" — deliberately an optional escape hatch, not a mandatory gate.
+
+**Verified:** `tsc --noEmit` and `eslint` clean. `next build` succeeded. Live in the browser — all branching paths navigate correctly, destination content renders, all three entry points link correctly.
+
+**Documentation updated this session (all on `development`, ready to push):**
+- `docs/DECISIONS.md`: v31 (navigator) + v32 (staging review gap — see below).
+- `CHANGELOG.md`: navigator entry under `### Added`; new `### Process — review gap to address` section.
+- `README.md`: status line and repo layout's `app/` line updated to include the navigator page.
+- `ROADMAP.md`: navigator added to Backlog as done (issue #18).
+- This HANDOFF.md entry.
+
+**Critical item for Claude to address — unreviewed code on `staging`:**
+
+The project owner explicitly asked that this be flagged in the docs. `staging` is currently 3 commits ahead of `origin/staging` (the issue #6 repository-recommendations work, merged locally via commit `e5937fd`). This merge happened **without** the Claude Code `code-review` pass that the new standing process (entry above, 2026-08-26) requires. The manual inline review passed (60/60 tests green, no findings), but that's a first pass, not the independent second review the process now calls for. `staging` has **not** been pushed to `origin/staging` — it's waiting for the review.
+
+**What Claude needs to do before `staging` can be promoted further:**
+1. Run the `code-review` skill on Claude Code against the `origin/staging...staging` diff (the 3 unpushed commits: `1c80021`, `418d88a`, `e5937fd`).
+2. Address any findings.
+3. Only then push `staging` to `origin/staging` and consider the `staging` → `main` PR.
+
+See `docs/DECISIONS.md` v32 for the full account.
+
+**Branch state at handoff:**
+- `development` is 2 commits ahead of `origin/development` (the navigator commit `6153488` + merge `a0774e8`). **Not yet pushed — pending the project owner's go-ahead.**
+- `staging` is 3 commits ahead of `origin/staging` (issue #6 work). **Not yet pushed — pending the Claude Code review pass.**
+- `main` is in sync with `origin/main`.
+- All feature branches are merged into `development`. The following can be safely deleted once `development` is pushed: `feature/navigator`, `feature/about-page`, `feature/broaden-repository-recommendations`, `feature/fairification-plan`, `feature/landing-context-and-examples`, `feature/mentor-poc`, `feature/mentor-poc-docs`, `feature/mentor-poc-ui`, `feature/readme-center-header`, `feature/readme-update`, `feature/report-guided-remediation`, `feature/revisit-and-update-findings`, `feature/visual-identity-pass`, `docs/llm-provider-options`, `docs/mentor-scoping`.
+
+**Open GitHub issues at handoff** (8 open, 1 to close):
+| # | What | Status |
+|---|---|---|
+| [#2](https://github.com/atwine/fair-maturity-copilot/issues/2) | Checkpoint 6 — eval harness | Open |
+| [#3](https://github.com/atwine/fair-maturity-copilot/issues/3) | Checkpoint 7 — deploy + dogfood | Open |
+| [#4](https://github.com/atwine/fair-maturity-copilot/issues/4) | Checkpoint 8 — real ACE pilot | Open (depends on #3) |
+| [#7](https://github.com/atwine/fair-maturity-copilot/issues/7) | Future — RAG/verification/adjustable ambition | Open (blocked on #5) |
+| [#12](https://github.com/atwine/fair-maturity-copilot/issues/12) | Future — in-app LLM provider settings | Open |
+| [#16](https://github.com/atwine/fair-maturity-copilot/issues/16) | Level 2 harmonization content | Open (needs scoping) |
+| [#17](https://github.com/atwine/fair-maturity-copilot/issues/17) | Program/Consortium grouping | Open (needs scoping) |
+| [#18](https://github.com/atwine/fair-maturity-copilot/issues/18) | Navigator extending `/about` | **Done — close after push** |
+
+**Where to pick up (for Claude):**
+1. **Immediate:** push `development` to `origin/development` (after the project owner's go-ahead), close issue #18 on GitHub, delete merged feature branches.
+2. **Before next staging promotion:** run the `code-review` skill against the `origin/staging...staging` diff to address the unreviewed issue #6 work on `staging`.
+3. **Roadmap:** Checkpoints 6 (eval harness), 7 (deploy), 8 (pilot) remain. Issues #16/#17 need scoping conversations before building.
+
+**Open questions carried forward:** Promotion cadence for development→staging→main still unconfirmed. Neon production scale-to-zero plan decision still deferred to Checkpoint 7. The `uvicorn --reload` unreliability in the OneDrive-synced working directory persists — manually kill and restart the backend after every backend code change.

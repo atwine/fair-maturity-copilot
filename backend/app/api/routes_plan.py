@@ -15,13 +15,14 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
-from app.adapters.fair.plan import Plan as BuiltPlan
-from app.adapters.fair.plan import PlanGenerationFailed, build_fairification_plan
+from app.adapters.registry import get_adapter
 from app.api.schemas import PlanIndicatorRefOut, PlanOut, PlanStepOut
 from app.db import get_session
 from app.engine.models import AssessmentRun, Finding, Indicator
 from app.engine.models import Plan as PlanRow
 from app.engine.models import PlanStep, PlanStepIndicator
+from app.engine.plan import Plan as BuiltPlan
+from app.engine.plan import PlanGenerationFailed
 
 router = APIRouter(prefix="/assessments", tags=["plan"])
 
@@ -137,8 +138,9 @@ def get_plan(run_id: UUID, session: Session = Depends(get_session)) -> PlanOut:
     ).all()
     indicators_by_id = {i.id: i for i in indicators}
 
+    adapter = get_adapter(run.adapter_id)
     try:
-        built_plan = build_fairification_plan(
+        built_plan = adapter.build_plan(
             findings=findings, indicators_by_id=indicators_by_id, subject_label=run.subject_label
         )
     except PlanGenerationFailed:

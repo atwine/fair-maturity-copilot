@@ -9,8 +9,6 @@ import { PrincipleChip } from "@/components/fair-spectrum";
 import { api, ApiError } from "@/lib/api-client";
 import type { Assessment, Question } from "@/lib/types";
 
-const ADAPTER_ID = "fair-v0";
-
 export default function ReviewPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -26,7 +24,12 @@ export default function ReviewPage() {
     let cancelled = false;
     async function load() {
       try {
-        const [q, a] = await Promise.all([api.getQuestions(ADAPTER_ID), api.getAssessment(runId)]);
+        // The assessment loads first -- its own adapter_id says which
+        // adapter's questions to fetch (issue #16: no longer a single
+        // hardcoded adapter for every run).
+        const a = await api.getAssessment(runId);
+        if (cancelled) return;
+        const q = await api.getQuestions(a.adapter_id);
         if (cancelled) return;
         if (a.status === "completed") {
           router.replace(`/assessments/${runId}/report`);

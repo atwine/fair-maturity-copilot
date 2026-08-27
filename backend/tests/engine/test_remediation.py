@@ -87,3 +87,19 @@ def test_pass_findings_bypass_the_overlap_check():
     ok, notes = _grounding_ok(praise_text, _answer(label="Yes, clearly true"), "pass")
     assert ok
     assert notes is None
+
+
+def test_not_started_findings_bypass_the_overlap_check():
+    # Issue #16: a "not_started" answer gets generic "here's how to begin"
+    # guidance (the harmonization adapter's own remediation prompt), same
+    # spirit as the dont_know/pass bypasses above — it naturally won't share
+    # words with a thin "Not started yet" label either.
+    getting_started_text = (
+        "A good first step is agreeing on one shared field name and format for this concept across "
+        "every site, even before anything else is standardized, so later work has something to build on."
+    )
+    ok, notes = _grounding_ok(
+        getting_started_text, _answer(label="Not started yet"), "not_started"
+    )
+    assert ok
+    assert notes is None

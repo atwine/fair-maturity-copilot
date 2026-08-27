@@ -5,10 +5,12 @@ adapter means one new entry here, not changes scattered through the API.
 """
 
 from app.adapters.fair.adapter import FairAdapter
+from app.adapters.harmonization.adapter import HarmonizationAdapter
 from app.engine.ports import Adapter
 
 _ADAPTERS: dict[str, Adapter] = {
     "fair-v0": FairAdapter(),
+    "harmonization-v0": HarmonizationAdapter(),
 }
 
 

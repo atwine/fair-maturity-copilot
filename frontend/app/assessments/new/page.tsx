@@ -1,17 +1,55 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { api, ApiError } from "@/lib/api-client";
 
-const ADAPTER_ID = "fair-v0";
+// Issue #16: which check to start is read from how this page was reached
+// (a link's ?adapter= param), not an upfront chooser screen shown to
+// everyone -- the project owner explicitly wanted the harmonization check
+// offered as a next step (from the report page, and from "Which tool fits?"),
+// not a fork added to the front of the common, single-dataset path. An
+// unrecognized or missing param falls back to today's default so every
+// existing link into this page keeps working unchanged.
+const ADAPTER_COPY: Record<string, { heading: string; description: string; label: string; placeholder: string }> = {
+  "fair-v0": {
+    heading: "What are we assessing?",
+    description:
+      "Give the dataset or collection a short, recognizable name — you'll see it on every screen and in the final report.",
+    label: "Dataset or collection name",
+    placeholder: "e.g. ACE Genomics Data Holdings — TB WGS dataset",
+  },
+  "harmonization-v0": {
+    heading: "What initiative are we checking?",
+    description:
+      "Give the multi-site initiative or consortium a short, recognizable name — you'll see it on every screen and in the final report.",
+    label: "Initiative or consortium name",
+    placeholder: "e.g. 11-Center HIV Data Consortium",
+  },
+};
+const DEFAULT_ADAPTER_ID = "fair-v0";
 
+// useSearchParams() forces this page to opt out of static prerendering
+// unless the component calling it is wrapped in a Suspense boundary (Next.js
+// build requirement). The page itself is a thin Suspense wrapper; the real
+// logic lives in NewAssessmentForm below.
 export default function NewAssessmentPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewAssessmentForm />
+    </Suspense>
+  );
+}
+
+function NewAssessmentForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const adapterId = ADAPTER_COPY[searchParams.get("adapter") ?? ""] ? searchParams.get("adapter")! : DEFAULT_ADAPTER_ID;
+  const copy = ADAPTER_COPY[adapterId];
   const [subjectLabel, setSubjectLabel] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,8 +71,8 @@ export default function NewAssessmentPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const run = await api.createAssessment(ADAPTER_ID, subjectLabel.trim());
-      const questions = await api.getQuestions(ADAPTER_ID);
+      const run = await api.createAssessment(adapterId, subjectLabel.trim());
+      const questions = await api.getQuestions(adapterId);
       router.push(`/assessments/${run.id}/question/${questions[0].indicator_id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong starting the assessment.");
@@ -46,21 +84,18 @@ export default function NewAssessmentPage() {
     <main className="flex flex-1 items-center justify-center px-6 py-12">
       <Card className="w-full max-w-lg">
         <CardHeader>
-          <CardTitle className="font-heading text-2xl">What are we assessing?</CardTitle>
-          <CardDescription>
-            Give the dataset or collection a short, recognizable name &mdash; you&rsquo;ll see it on
-            every screen and in the final report.
-          </CardDescription>
+          <CardTitle className="font-heading text-2xl">{copy.heading}</CardTitle>
+          <CardDescription>{copy.description}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="subject-label">Dataset or collection name</Label>
+              <Label htmlFor="subject-label">{copy.label}</Label>
               <Input
                 id="subject-label"
                 value={subjectLabel}
                 onChange={(e) => setSubjectLabel(e.target.value)}
-                placeholder="e.g. ACE Genomics Data Holdings &mdash; TB WGS dataset"
+                placeholder={copy.placeholder}
                 autoFocus
                 required
               />

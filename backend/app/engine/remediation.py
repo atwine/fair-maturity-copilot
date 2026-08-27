@@ -33,7 +33,10 @@ def _grounding_ok(text: str, answer: Answer, severity: str) -> tuple[bool, str |
     # A "pass" note is similarly generic by design (a short "why this is
     # fine" line) and its only reference material is often just a bare
     # "Yes, clearly true" label with no real content to ground against.
-    if answer.is_dont_know or severity == "pass":
+    # A "not_started" answer gets the same exemption for the same reason: its
+    # guidance is a generic "here's how to begin" (see issue #16), and the
+    # answer it's grounded against is typically just as thin.
+    if answer.is_dont_know or severity in {"pass", "not_started"}:
         return True, None
 
     # Reference-grounding: the output should overlap with something the user

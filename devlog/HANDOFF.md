@@ -4,6 +4,96 @@ Running context for any agent (Claude, Devin, or a fresh session of either) pick
 
 ---
 
+## 2026-08-27 (continued, final) — HANDING OFF TO DEVIN: staging code-review in progress, real findings not yet triaged
+
+**Read this entry first if you are Devin (or any fresh agent) picking this
+up now.** The Claude Code session that did all of issue #16's work (see the
+three entries below this one, plus `docs/DECISIONS.md` v35 and
+`docs/PLANS/issue-16-harmonization-plan.md` for full detail) ran out of its
+budget mid-way through the **last step**: the required `code-review` pass on
+`staging` before pushing it. Everything up to that point is done, tested,
+and safe. What's below is exactly where it stopped and what's left.
+
+### Current git state (verified at handoff time)
+
+- **`origin/development`**: fully up to date, pushed, contains all of issue
+  #16 (8 commits). This is a safe, complete, working state — 83/83 backend
+  tests pass, eval harness 15/16 (one pre-existing unrelated flake), full
+  live browser verification done (see the entries below). **Nothing here
+  needs redoing.**
+- **Local `staging` branch**: `development` has been merged into it locally
+  (commit `6d9c84c`, "Merge development into staging (issue #16:
+  harmonization-v0 second adapter)"). **This merge has NOT been pushed to
+  `origin/staging`.** `origin/staging` is untouched. This is the safe,
+  low-risk state to hand off in — nothing shared has been touched yet.
+- Currently checked out on `staging` locally, working tree clean (only the
+  usual untracked `.claude/` launch config, never committed).
+
+### What's actually left before this can ship
+
+Per the project owner's global CLAUDE.md, `staging` needs a `code-review`
+skill pass before it's pushed, and a second, independent
+`open-code-review-delegate` pass right before the `main` PR. **The
+`code-review` pass was started but not finished:**
+
+1. Launched 8 parallel finder-agent angles (line-by-line, removed-behavior,
+   cross-file-tracer, reuse, simplification, efficiency, altitude,
+   conventions) against `git diff origin/staging...staging`, per the skill's
+   own process (medium/high-effort code review — see the `code-review` skill
+   if unfamiliar with the format).
+2. **7 of 8 finished and reported real candidate findings** (below). **The
+   8th (efficiency angle) never completed — it was still running when the
+   session's process exited and its in-process state was lost.** Its
+   partial output file may exist at a path referenced earlier in this
+   session's transcript, but treat it as unrecoverable and just re-run that
+   one angle fresh if redoing the review from scratch, or run the whole
+   8-angle pass again if in doubt — it's cheap relative to shipping a real
+   bug.
+3. **The verify pass (dedup + CONFIRMED/PLAUSIBLE/REFUTED via a second
+   agent per candidate) never ran at all.** Everything below is a raw,
+   unverified candidate list from the finder agents — real engineering
+   judgment, not confirmed bugs. Some may be REFUTED on closer inspection;
+   don't blindly fix all of them without at least reading the actual code
+   they point at.
+
+### The candidate findings (unverified — triage before fixing)
+
+**Worth fixing before shipping (real user-facing correctness issues):**
+
+- **`frontend/app/assessments/[id]/report/page.tsx` (~line 141) + `backend/app/engine/scoring.py` (~line 52).** When EVERY finding on a run is `not_started` (a genuinely realistic case — an 11-center consortium that hasn't started ANY of the 6 harmonization practices yet), `composite_score()` returns `0.0` (there's a unit test, `test_a_run_of_only_not_started_findings_scores_zero_not_a_crash`, confirming this is deliberate — it just never asked "how does 0.0 *render*"). The report page shows this as a big score badge colored via `scoreTone()`, which treats any score `< 50` as "major" (the red/failing color) — so an all-not-started run shows a red "0.0 out of 100" directly next to copy saying "that's not counted against you." Visually contradicts itself. This was never tested live (the one live test used 5 pass + 1 not_started, which is a real gap in the verification that was done). Needs a real product decision (Claude and the project owner never discussed this case): show something other than a numeric 0 when the `scored` population is empty (e.g. "Not scored yet" instead of a number), or exclude a fully-not-started run's badge from the pass/fail color scale entirely.
+- **Same file, ~line 151.** The "X of Y indicators have something worth fixing" line uses `report.findings.length` (every finding, including `not_started` ones) as the denominator, while the score badge above it is a percentage over a smaller population (`not_started` findings excluded). The two numbers on screen describe different-sized groups with no way for a reader to reconcile them. Same root cause as above; likely fixed together.
+- **`backend/app/adapters/harmonization/prompts/remediation.jinja` (~line 26 vs ~line 49).** The OUTPUT FORMAT block unconditionally shows 2 numbered steps for any non-pass, non-unknown severity — but the YOUR TASK section for `not_started` explicitly says "exactly one concrete, small, genuinely first step" and warns against writing "a full solution." These two instructions contradict each other. In the one live test run this session did, the model happened to write 2 reasonable steps anyway (not padded/invented), so this may be a latent risk rather than an observed failure — but it's a real internal inconsistency worth resolving (either relax "exactly one" to "1-2 steps" to match the format, or make the format conditionally show only 1 step for `not_started`).
+
+**Worth checking, unclear severity:**
+
+- **`frontend/app/assessments/new/page.tsx` — new `useSearchParams()` call with no `<Suspense>` boundary.** One finder agent flagged this as a potential `next build` failure on Next.js's App Router (a page using `useSearchParams()` outside Suspense can fail to statically prerender). This was **never verified against a real `next build`** this session — only `tsc --noEmit` and `eslint` were run (both clean), which would NOT catch this. **Run `npm run build` in `frontend/` before trusting this either way** — if it fails or warns, wrap the page's search-params-reading logic in a `<Suspense>` boundary (Next's standard fix). Note: `frontend/app/assessments/[id]/question/[indicatorId]/page.tsx` already used `useSearchParams()` before this session's changes with no Suspense wrapper either, so if this is a real problem it may be pre-existing, not new — worth checking git blame before assuming it's this PR's bug alone.
+- **`backend/app/api/routes_answers.py` (~line 26).** The order of checks changed: indicator-existence is now checked before answer-value validity (was the reverse before). A request with BOTH a bad indicator_id AND a bad value now gets a 404 instead of the previous 422. Low real-world impact (no known caller depends on this specific dual-invalid case), but worth a one-line note in `CHANGELOG.md` if anyone asks why an error code changed.
+- **`backend/app/api/routes_answers.py` (~line 38), `is_dont_know = body.value == "dont_know"`.** Still a hardcoded literal string, sitting right next to code that was JUST rewritten to derive everything else generically from `question.options`. Works today because both adapters happen to spell their "I don't know" option `"dont_know"` — nothing enforces a third adapter doing the same. Low priority unless/until a third adapter is actually built.
+- **`frontend/components/fair-spectrum.tsx` (~line 52).** Segment display order changed from a hardcoded canonical order to "first appearance in the data." Currently invisible (both adapters' data happens to already be in the "right" order), but not enforced — a future YAML reorder could silently shuffle the progress-bar segment order. Low priority.
+
+**Cleanup-only, no correctness risk (fix opportunistically, not blocking):**
+
+- `backend/app/adapters/harmonization/mentor_prompt.py` and `backend/app/adapters/harmonization/prompt.py` are near-byte-identical copies of the `fair/` versions (only the template path differs) — unlike `content.py`/`plan.py`, which WERE properly extracted into `app/engine/` in this same PR. A third adapter would copy these two files a third time. Worth consolidating into `app/engine/` the same way `content.py`/`plan.py` were, but not urgent.
+- `backend/app/engine/scoring.py`'s `_EXCLUDED_FROM_COMPOSITE` set and `backend/app/engine/remediation.py`'s grounding-bypass condition are both hardcoded Python literals (`{"not_started"}`, `{"pass", "not_started"}`) rather than something adapters declare themselves (the way `severity_for_answer()` already reads per-adapter YAML). A third adapter's own new severity would need hand-editing these same lines in shared engine code again. A deeper fix exists (adapters declare exclusion/exemption per severity in their own YAML) but wasn't worth the scope increase for a 2nd adapter.
+- `frontend/app/assessments/[id]/report/page.tsx` fetches `api.getAssessment(runId)` a second time (separately from wherever the caller navigated from) purely to read `adapter_id` for the suggestion-card visibility check. Adding `adapter_id` to the backend's `ReportOut` schema (`backend/app/api/schemas.py`) would let this be read from the report response already being fetched, removing a whole extra network round-trip and its own state/error handling. Not urgent, but a clean small fix if anyone's back in this file.
+- `HarmonizationSuggestionCard` (same file) is hand-built inline rather than a shared component — fine as a single-use card, worth factoring out only if a second page needs the same "nudge" pattern later.
+
+### What to do next, in order
+
+1. **Verify the "everything not_started" score-rendering issue live** — create a harmonization-v0 run, answer all 6 with "We haven't started this yet," complete it, look at the report. Decide the actual UX fix (this needs a quick call, not necessarily the project owner's since it's a small polish issue, but flag it if unsure).
+2. **Run `cd frontend && npm run build`** to settle the Suspense-boundary question for real, not by inference.
+3. Fix whichever of the above are actually real (skip the ones that turn out REFUTED on a closer look — re-run the verify step of `code-review` if you want the same rigor this session was going for, or just use engineering judgment given time constraints).
+4. Any fix lands as its own small commit/branch off `development` (self-reviewed), merged into `development`, then redo the `development` → `staging` merge (the current local `staging` merge is stale the moment `development` gets a new commit — don't just push the existing local `staging` as-is once fixes land upstream of it).
+5. **Re-run (or finish) the `code-review` skill pass** against the final `origin/staging...staging` diff before pushing `staging`.
+6. Ask the project owner before pushing `staging`.
+7. Run the **`open-code-review-delegate`** skill (a second, independent review — different tool, catches different mistakes, required before every `main` PR per the project owner's global CLAUDE.md) against the `staging` → `main` diff.
+8. Open the PR to `main`. Ask the project owner before merging — an open PR is not itself permission to merge.
+9. Nothing else is pending — issue #16 itself is already closed on GitHub (closed earlier this session, with a full comment explaining what shipped). Issue #17 (Program/Consortium rollup) is intentionally NOT started — see `ROADMAP.md`'s "Bigger directions to evaluate later" section.
+
+**If anything above is unclear:** `docs/DECISIONS.md` v35 has the full design rationale for everything in this feature. `docs/PLANS/issue-16-harmonization-plan.md` has the original approved plan. The three HANDOFF entries directly below this one are the blow-by-blow build log, in order, if you need to understand exactly what was built and why at each step.
+
+---
+
 ## 2026-08-24 — repo scaffolded, planning prompt drafted
 
 **What exists:** Nothing implemented yet. This is a planning-stage scaffold only.
@@ -83,6 +173,208 @@ Running context for any agent (Claude, Devin, or a fresh session of either) pick
 **What's next:** Checkpoint 3 (synthetic demo datasets) or Checkpoint 4 (backend REST API) — see `ROADMAP.md`. This work is sitting on `feature/fair-indicators`, not yet merged into `development` — needs a self-review confirmation and a "push development" go-ahead like last time before it lands there.
 
 **Open questions carried forward:** Neon Postgres still not provisioned (seed script only smoke-tested against SQLite so far — Postgres-specific behavior, e.g. the JSON column type, isn't proven yet). Promotion cadence for development→staging→main still unconfirmed by the user.
+
+---
+
+## 2026-08-27 — Issue #16 (Level 2 harmonization check): plan approved, PR 1 in progress
+
+**Why this entry exists:** the project owner asked explicitly, mid-session, to
+keep this log and the plan document current at every step — there's a real
+chance this work gets handed to Devin partway through if this session runs
+out of budget. Treat this entry as the thing to read first if that happens:
+it says exactly what's done, what's half-done, and what's next.
+
+**The plan:** full approved implementation plan is now committed in-repo at
+[`docs/PLANS/issue-16-harmonization-plan.md`](../docs/PLANS/issue-16-harmonization-plan.md)
+— read that first, it has the full context (why a second adapter, what's
+reused vs. new, the exact 5-PR sequence). This entry only tracks *progress*
+against that plan; the plan itself is the source of truth for *what* and
+*why*.
+
+**Status as of this entry: PR 1 (engine fixes) is in progress, not yet
+committed.** Working on branch `feature/engine-plan-boundary-fix` off
+`development` (created this session, not yet pushed anywhere). Nothing has
+been committed to git yet — all changes so far exist only as uncommitted
+edits in the working tree, if any are already applied by the time this is
+read. **If picking this up cold: run `git status` and `git diff` on this
+branch first** to see exactly what's actually landed vs. still just planned.
+
+**What PR 1 is, in one line:** fix `backend/app/api/routes_plan.py`'s direct
+import of `app.adapters.fair.plan` (a real bug — every run's walkthrough plan
+uses FAIR's own wording regardless of which adapter it belongs to, harmless
+today only because there's just one adapter), move a couple of genuinely
+adapter-agnostic pieces into `app/engine/` where they belong, and teach
+scoring/remediation about a new non-penalized `not_started` outcome — all
+with **zero visible behavior change** to today's check, proven by the full
+existing test suite passing unchanged plus new tests for the new behavior.
+Exact file list is in the plan doc's "PR 1" section.
+
+**Open/carried-forward items specific to this feature** (flagged during
+planning, not yet resolved — see the plan doc's "Risks" discussion in the
+design agent's notes, not reproduced in the committed plan doc itself):
+- `_SEVERITY_RANK`'s exact sort position for `not_started` (currently
+  planned as "just above pass") only affects display order, not scoring —
+  low-stakes, fine to leave as implemented unless it looks wrong live.
+- Whether this repo runs `mypy`/`pyright` in CI was flagged as worth
+  checking before PR 1, because `FakeAdapter` in `tests/engine/test_boundary.py`
+  won't implement the new `build_plan` Protocol method — harmless at runtime
+  (Python Protocols are structural/unenforced without a type checker) but
+  worth a stub method if static type-checking turns out to be wired up.
+  Checked: **no `.github/workflows/` exists in this repo at all** — not
+  CI-enforced, confirmed, not just assumed. A stub `build_plan` was added to
+  `FakeAdapter` anyway, cheap and documents the Protocol shape correctly.
+
+---
+
+## 2026-08-27 (continued) — PR 1 done, PR 2 + PR 3 built, tests passing
+
+**Status update, same session as the entry above.** PR 1 (engine fixes) is
+now **committed and merged into `development` locally** — commit `2c7b6cd`
+on `feature/engine-plan-boundary-fix`, merged via `aee117b`. **Not pushed
+to GitHub yet** — asked, and the project owner said to keep batching rather
+than push after every PR. Full suite passed (68/68, up from 60) before that
+merge.
+
+**PR 2 (harmonization-v0 adapter, backend) is fully written, not yet
+committed.** Everything under `backend/app/adapters/harmonization/`
+(`adapter.py`, `content.py`, `indicators.yaml` with the 6 real, previously-
+agreed questions, `prompt.py` + `prompts/remediation.jinja`, `plan.py` +
+`prompts/harmonization_plan.jinja`, `mentor_prompt.py` +
+`prompts/mentor_system.jinja`), registered in `app/adapters/registry.py`,
+plus the promised `app/engine/content_loader.py` extraction (both adapters'
+`content.py` are now thin wrappers over it). New tests:
+`tests/adapters/harmonization/test_adapter.py`, `test_plan.py`,
+`tests/api/test_harmonization_flow.py` (fast, no LLM),
+`tests/api/test_harmonization_live.py` (2 lean live tests — deliberately
+NOT a full mirror of `test_report_live.py`/`test_plan_live.py`'s every
+case, since the route mechanics those cover are engine-level code already
+proven live against fair-v0; re-running all of it against a second adapter
+would be redundant LLM calls for no new coverage — see that file's own
+docstring for the reasoning). Eval harness extended: `backend/eval/golden_set.yaml`
+gained `harmonization_remediation_cases`/`harmonization_plan_cases`
+(6 remediation cases incl. two `not_started` ones, 1 plan case), and
+`backend/scripts/run_eval.py` is now adapter-parameterized (was hardcoded
+to `FairAdapter`).
+
+**PR 3 (frontend plumbing) is fully written, not yet committed.**
+`frontend/lib/types.ts` (added `not_started`, widened `PrincipleGroup` to
+`string`), `frontend/components/fair-spectrum.tsx` (rewritten to look up
+colors from an explicit table keyed by group name — including fair-v0's
+exact original 4 classes, unchanged — rather than a hash, specifically to
+avoid the collision risk a hash-based approach was flagged as carrying),
+`frontend/app/globals.css` (new `--severity-not-started(-soft)` and
+`--group-a/b/c(-soft)` tokens, **contrast-checked**: all 10 new
+text-on-background pairs pass WCAG AA, 4.60:1 to 7.77:1),
+`frontend/app/assessments/[id]/report/page.tsx` (3-way bucket split with a
+new "Not started yet" section, the plan-button visibility bug the plan doc
+predicted is fixed, "See your FAIRification plan" button label genericized
+to "See your plan" since that FAIR-specific wording would be wrong on a
+harmonization report). Also touched in passing: `backend/app/api/schemas.py`'s
+two stale comments describing `principle_group`/`value` as closed 4-item
+sets — updated to say what's actually true now. **Not yet verified live in
+a browser** — per the plan, that happens for real once PR 4 makes
+harmonization-v0 actually reachable through the UI; this PR's own
+verification step (confirm fair-v0 renders pixel-identical) is still
+outstanding.
+
+**Test result: full backend suite passed, 83/83 (up from 68 after PR 1,
+up from 60 originally) — zero regressions, PR 2's new adapter fully
+covered.** Confirmed via `cd backend && ./.venv/Scripts/python.exe -m
+pytest tests/ -q`.
+
+**What's next, in order:** run `scripts/run_eval.py` against the extended
+golden set and read the report (not yet done as of this entry) → commit
+PR 2 and PR 3 as separate commits (both built in this one sitting, but the
+plan's PR boundaries still apply) → merge both into `development` locally
+→ PR 4 (the two entry points: report-page suggestion card,
+`assessments/new` accepting a link parameter, `navigator.tsx`'s "multiple
+sites" rework) → live browser walkthrough → docs (`docs/DECISIONS.md`,
+`CHANGELOG.md`, `ROADMAP.md`, close issue #16) → ask before pushing
+`development` → the `staging`/`main` promotion pass with both required
+review passes.
+
+---
+
+## 2026-08-27 (continued) — Issue #16 done: all 4 PRs merged to `development`, live-verified, docs closed out
+
+**This is the completion entry for the two entries above — read this one
+first if picking this project up now, the earlier two are the in-progress
+trail that got here.**
+
+**Everything in `docs/PLANS/issue-16-harmonization-plan.md` is built,
+merged to `development` locally, and live-verified.** `development` is 6
+commits ahead of `origin/development`, **not yet pushed** — same standing
+instruction as before (batch, ask first). Commit sequence: `2c7b6cd`/`aee117b`
+(PR 1, engine fixes), `acc4683`/(merge) (PR 2, harmonization-v0 backend +
+eval harness), `7928b68`/(merge) (PR 3+4 combined — see below for why),
+`78e8d32`/(merge) (3 bug fixes found during live verification, below).
+
+**Real deviation from the plan, done deliberately and noted here rather
+than silently:** PR 3 (frontend plumbing) and PR 4 (reachability) got built
+in the same sitting before either was committed, and ended up touching the
+same files (`report/page.tsx` in particular) — so they shipped as one
+combined commit/merge instead of two. Called out explicitly in that
+commit's own message. No loss of information, just a different commit
+boundary than the plan sketched.
+
+**Three real bugs were caught by actually running the new flow in a
+browser, not by any test:**
+1. `question/[indicatorId]/page.tsx` and `review/page.tsx` still hardcoded
+   `ADAPTER_ID = "fair-v0"`, fetched in parallel with the assessment via
+   `Promise.all` — a harmonization run hung forever on "Loading this
+   assessment…" because it was fetching fair-v0's 12 questions and could
+   never find its own indicator ids. Fixed by fetching the assessment
+   first and reading its own `adapter_id`.
+2. `plan/page.tsx`'s eyebrow label was hardcoded "Your FAIRification
+   plan" — wrong wording on a harmonization report. Genericized to "Your
+   plan".
+3. (Caught and fixed inline, not via a bug — worth remembering anyway) two
+   dev servers from earlier in this session were still running on ports
+   8000/3000 with stale code, plus a handful of ghost TCP LISTENING
+   entries with no live process behind them (`Get-Process` returned
+   nothing for the PID `netstat` named) — a real quirk of this specific
+   Windows environment, not a code issue. Worked around by using port 8010
+   for the one-off verification pass rather than fighting the ghost
+   entries; `.env.local` created temporarily for this and deleted after.
+   If dev servers won't bind next time, check for stale processes/ghost
+   listeners before assuming the code is broken.
+
+**Full verification, all real (not simulated), before promotion:**
+- Backend: 83/83 tests pass. Eval harness (both adapters' golden sets):
+  15/16 — the 1 failure is the same pre-existing, already-documented (v33)
+  LLM-judge non-determinism on an unrelated fair-v0 case, not a regression;
+  both new `not_started` cases and both plan cases passed clean.
+- Frontend: `tsc --noEmit` and `eslint` both clean.
+- Live browser, full harmonization-v0 flow: navigator entry point →
+  6-question flow incl. a real "We haven't started this yet" answer →
+  review → complete → report (score correctly excludes the not_started
+  finding — 5 real passes + 1 not_started scored identically to 6 passes,
+  100/100; separate "Not started yet" section; "how to begin" remediation
+  tone, not "how to fix") → plan (the not_started item got a real 2-step
+  "how to begin" plan entry, not excluded like a passing item would be) →
+  mentor (greeted correctly, grounded in the harmonization content, no
+  jargon, the opening-greeting tool-call fix from earlier this session
+  still holds for the new adapter too).
+- Live browser, fair-v0 regression check: pixel-identical to before —
+  "Question 1 of 12", original 4 spectrum colors, only 4 answer options
+  (no 5th-option leak from the new adapter's content).
+
+**Docs closed out:** `docs/DECISIONS.md` v35 (full writeup — the core
+adapter-vs-extend decision and why, the boundary-leak fix, the
+`not_started` scoring design, the three live-caught bugs), `CHANGELOG.md`
+(Added + Fixed entries), `ROADMAP.md` (Checkpoint 10, marked done; issue
+#17 added to "Bigger directions to evaluate later" as the natural,
+explicitly-not-yet-scoped follow-on). Issue #16 itself: **not yet closed on
+GitHub as of this entry** — closing it is the next action, via the PR that
+eventually promotes this to `main` (same pattern as issue #2 earlier this
+session), not before.
+
+**What's left, in order:** close issue #16 (comment + close, or via the
+eventual PR) → ask before pushing `development` to GitHub → `staging`
+promotion with the required `code-review` skill pass → ask before pushing
+`staging` → `main` PR with the required `open-code-review-delegate` pass →
+ask before merging. Nothing code-wise is left; everything from here is the
+review/promotion workflow itself.
 
 ---
 

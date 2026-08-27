@@ -1,21 +1,22 @@
-"""Implements app.engine.ports.Adapter for the FAIR standard. Everything
-FAIR-specific (indicator content, the scoring rubric) is delegated to
-content.py/scoring_rubric.py — this class is just the glue that satisfies
-the engine's Adapter Protocol."""
+"""Implements app.engine.ports.Adapter for the multi-site harmonization
+check (issue #16). Everything specific to this standard (indicator content,
+prompt wording) is delegated to content.py/prompt.py/plan.py/mentor_prompt.py
+-- this class is just the glue that satisfies the engine's Adapter Protocol,
+same shape as app/adapters/fair/adapter.py."""
 
-from app.adapters.fair.content import load_indicators, load_options_by_indicator_id
-from app.adapters.fair.mentor_prompt import render_mentor_system_prompt as _render_mentor_system_prompt
-from app.adapters.fair.plan import build_fairification_plan
-from app.adapters.fair.prompt import PROMPT_VERSION
-from app.adapters.fair.prompt import render_remediation_prompt as _render_remediation_prompt
+from app.adapters.harmonization.content import load_indicators, load_options_by_indicator_id
+from app.adapters.harmonization.mentor_prompt import render_mentor_system_prompt as _render_mentor_system_prompt
+from app.adapters.harmonization.plan import build_harmonization_plan
+from app.adapters.harmonization.prompt import PROMPT_VERSION
+from app.adapters.harmonization.prompt import render_remediation_prompt as _render_remediation_prompt
 from app.engine.models import Answer, Finding, Indicator
 from app.engine.plan import Plan
 from app.engine.ports import MentorIndicatorContext, Question
 from app.engine.scoring import priority_weight_for, severity_for_answer
 
 
-class FairAdapter:
-    adapter_id = "fair-v0"
+class HarmonizationAdapter:
+    adapter_id = "harmonization-v0"
     prompt_version = PROMPT_VERSION
 
     def __init__(self) -> None:
@@ -65,6 +66,6 @@ class FairAdapter:
     def build_plan(
         self, *, findings: list[Finding], indicators_by_id: dict[str, Indicator], subject_label: str
     ) -> Plan:
-        return build_fairification_plan(
+        return build_harmonization_plan(
             findings=findings, indicators_by_id=indicators_by_id, subject_label=subject_label
         )

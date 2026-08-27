@@ -17,10 +17,19 @@ export function SiteHeader() {
           FAIR Maturity Copilot
         </Link>
         <nav className="flex items-center gap-4">
-          <Link href="/navigator" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
+          {/* py-2 pushes the tap target to the WCAG 2.2 24px minimum -- the
+              link text itself stays the same size, this just gives the
+              clickable box room around it. */}
+          <Link
+            href="/navigator"
+            className="inline-flex items-center py-2 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          >
             Which tool fits?
           </Link>
-          <Link href="/about" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
+          <Link
+            href="/about"
+            className="inline-flex items-center py-2 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          >
             About this tool
           </Link>
         </nav>

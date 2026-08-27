@@ -200,6 +200,7 @@ function QuestionForm({
         value={value}
         onValueChange={(v) => setValue(v as AnswerValue)}
         aria-labelledby="question-heading"
+        name={`answer-${question.indicator_id}`}
         className="gap-3"
       >
         {question.options.map((option) => (

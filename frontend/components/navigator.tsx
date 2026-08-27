@@ -426,8 +426,12 @@ export function Navigator() {
         ) : (
           <span />
         )}
+        {/* "up to" because most paths resolve in fewer than 6 -- several
+            questions have an early-exit choice straight to a
+            recommendation, so promising a fixed 6-question total would
+            overstate how long this actually takes for most people. */}
         <p className="text-xs text-muted-foreground">
-          {path.length + 1} of {Object.keys(QUESTIONS).length}
+          Step {path.length + 1} of up to {Object.keys(QUESTIONS).length}
         </p>
       </div>
     </div>

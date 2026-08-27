@@ -62,7 +62,21 @@ Built by [ACE](https://ace.ac.ug) (Africa Center of Excellence in Bioinformatics
 
 **Don't use OpenRouter's `openrouter/auto` model.** It picks a different model per request, which sounds convenient but isn't safe to depend on here: it can silently route a request to a reasoning model that spends its whole completion-token budget "thinking" and returns an empty reply — this happened twice in testing (see `docs/DECISIONS.md`). Name a specific model instead. If you're using OpenRouter as a fallback for a self-hosted vLLM box, pin it to the *same* model your vLLM box runs, so falling back doesn't also mean a behavior change.
 
-All of these are configured the exact same way — three values in `backend/.env` (`LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`), never a code change. See `backend/.env.example` for a ready-to-uncomment block for each option above. A cost comparison with real numbers is tracked in [issue #19](https://github.com/atwine/fair-maturity-copilot/issues/19), not yet written up here.
+All of these are configured the exact same way — three values in `backend/.env` (`LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`), never a code change. See `backend/.env.example` for a ready-to-uncomment block for each option above.
+
+### What this actually costs
+
+Real numbers, not a guess — measured by instrumenting one full flow end to end (a 12-question assessment with 4 gaps → report → plan → a 3-message mentor conversation, one of which confirms a fix and triggers a re-score) and counting the actual tokens the LLM client sent and received: **14,203 prompt tokens, 852 completion tokens, across 18 calls total.** Applying that same usage to three provider options (prices as listed on each provider's own pricing page — check current numbers before relying on this long-term, they change):
+
+| Provider | Price per 1M tokens (in / out) | Cost for that one measured flow | Notes |
+|---|---|---|---|
+| Self-hosted vLLM (Llama 3.3 70B) | $0 marginal | **$0** | Real cost is the GPU hardware itself, not per-call — this is what makes it cheap *in steady state*, not cheap to start |
+| Llama 3.3 70B, hosted on OpenRouter | $0.10 / $0.32 | **≈ $0.002** | Same model as the self-hosted option above — a behavior-matched fallback, priced cheaply enough not to matter even at real usage volume |
+| Claude Sonnet 5 (frontier, for comparison) | $2 / $10 | **≈ $0.037** | ~20x pricier than the Llama 3.3 70B options for this workload — the cost of not needing your own GPU hardware at all |
+
+A few things worth knowing before treating these numbers as the whole picture:
+- **A full assessment (report + plan) is a fixed, one-time cost per run** — the mentor is not. Every mentor message resends the whole conversation history, so a longer coaching conversation costs more than a short one, and grows the longer someone stays in it. The mentor's share of the measured flow above (5 calls, including the re-score triggered by a confirmed fix) was already the single largest contributor to total tokens despite being just 3 user messages.
+- **For a multi-site initiative** (see issues [#16](https://github.com/atwine/fair-maturity-copilot/issues/16)/[#17](https://github.com/atwine/fair-maturity-copilot/issues/17)) running this once per site, these per-run numbers multiply directly — 11 sites at the OpenRouter/Llama price above is still only a few cents total; at the Sonnet price, still under 50 cents. Cost is very unlikely to be the deciding factor between these options at this tool's scale; reliability and data-sensitivity are the real tradeoffs (see the "don't use `openrouter/auto`" note above).
 
 **Why a publicly hosted provider is a reasonable option here, not just a self-hosted one:** this tool never sends a dataset itself to the LLM — only the plain-language answers and free-text notes a person types into the assessment wizard. There's no file upload, no raw data, nothing sensitive by default leaving your machine beyond what you type into the form fields. That said, for anything involving multiple organizations' data practices (see the multi-site consortium work tracked in issues #16/#17), we lean toward self-hosted as the more conservative default.
 

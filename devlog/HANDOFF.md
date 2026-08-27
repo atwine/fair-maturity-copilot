@@ -574,3 +574,21 @@ The mentor scoped in `docs/DECISIONS.md` v19 was implemented in two parts, both 
 **Where this leaves things:** `feature/llm-default-back-to-vllm` (config/docs) and this verification follow-up are both merged locally into `development` — not yet pushed, pending the user's go-ahead. Issues #14-#19 are open on GitHub, unassigned. #16 and #17 still need a scoping conversation before anyone starts building. #14's live-verification concern is now resolved.
 
 **Open questions carried forward:** everything from prior entries (promotion cadence, Neon production plan decision) — plus, now: when will the 11-center consortium project actually get data access (the user's colleagues were "just beginning to ask" as of this session), since that's the real trigger for #16/#17 becoming buildable rather than speculative.
+
+---
+
+## 2026-08-26 — Issue #19: real, measured LLM cost numbers added to the README
+
+**Picked as the easiest of the six freshly-filed issues, deliberately.** #14 was effectively already done (previous entry); #16/#17 explicitly need a scoping conversation first; #15 needs real code changes; #18 needs actual frontend/UI work. #19 is pure documentation with no new code paths, so it went first.
+
+**Didn't estimate — measured.** Wrote a throwaway script (`backend/_measure_token_usage.py`, deleted after use) that monkeypatches `openai.resources.chat.completions.Completions.create` to record real `usage.prompt_tokens`/`usage.completion_tokens` on every call, then ran one realistic flow through the actual FastAPI app against the live vLLM endpoint (which happened to be reachable again this session): a 12-question assessment with 4 gaps → report (12 calls) → plan (1 call) → a 3-message mentor conversation where the last message confirms a fix and triggers a re-score (5 calls). Real total: 14,203 prompt tokens, 852 completion tokens, 18 calls — not a guess from reading the prompt templates.
+
+**Fetched current prices directly from OpenRouter's own model pages** (not carried over from earlier in this session, which could have drifted) for Llama 3.3 70B ($0.10/$0.32 per 1M) and Claude Sonnet 5 ($2/$10 per 1M), then applied the measured usage to get real per-flow costs: self-hosted vLLM $0, Llama-on-OpenRouter ≈$0.002, Sonnet ≈$0.037.
+
+**A genuine finding, not just a number-filling exercise:** the 3-message mentor conversation (5 calls once the re-score is counted) used more tokens than the entire 12-call report. Worth remembering architecturally — every mentor turn resends the whole conversation history, so cost (and latency) grows with how long someone stays in a coaching conversation, unlike the report/plan's fixed one-time cost. Wrote this into the README as an explicit caveat rather than letting the headline per-flow numbers imply a flat cost regardless of usage pattern. Also added a multi-site extrapolation directly relevant to issues #16/#17: even at Sonnet's frontier price, 11 sites running this same flow stays under 50 cents total, which reframes the real decision between providers as reliability/data-sensitivity, not cost.
+
+**Verified:** ran the instrumentation script itself against the real endpoint (not mocked) and got the numbers above directly from real API responses. Full account in `docs/DECISIONS.md` v28 and the `CHANGELOG.md` entry.
+
+**This work is on `feature/readme-llm-cost-comparison`, not yet merged into `development`** — pending self-review and the user's go-ahead to push, same as every other change this session.
+
+**Open questions carried forward:** unchanged from the entry above.

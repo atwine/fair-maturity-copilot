@@ -1,0 +1,99 @@
+# Checkpoint 6 (issue #2): the golden set formalizing what earlier
+# checkpoints validated by hand -- a representative spread of real answer
+# patterns across severities, indicators, and FAIR principles, each with a
+# rubric an LLM judge checks the real generated remediation text against.
+# Not exact-string-match (LLM output is non-deterministic) -- see
+# scripts/run_eval.py for how these are actually run and scored.
+#
+# Every indicator_id below is real, from app/adapters/fair/indicators.yaml
+# -- this file borrows its content (title/definition/help_text) rather than
+# repeating it, so the golden set can't drift out of sync with the real
+# question set.
+
+remediation_cases:
+  - id: pass-with-specific-note
+    indicator_id: fair.f1-identifier
+    answer:
+      value: "yes"
+      label: "Yes, clearly true"
+      note: "Registered a DOI on Zenodo in 2023 and it's listed in our lab wiki."
+      is_dont_know: false
+    checks: [format, plain_language, no_fair_jargon, grounded, no_invented_facts, length]
+
+  - id: major-gap-no-note
+    indicator_id: fair.r1-1-license
+    answer:
+      value: "no"
+      label: "No, not true"
+      note: null
+      is_dont_know: false
+    checks: [format, plain_language, no_fair_jargon, no_invented_facts, length]
+
+  - id: major-gap-with-note
+    indicator_id: fair.r1-data-dictionary
+    answer:
+      value: "no"
+      label: "No, not true"
+      note: "We have column headers but no separate document explaining what they mean."
+      is_dont_know: false
+    checks: [format, plain_language, no_fair_jargon, grounded, no_invented_facts, length]
+
+  - id: minor-gap-with-note
+    indicator_id: fair.i1-i2-standard-formats
+    answer:
+      value: "partial"
+      label: "Partially / inconsistently true"
+      note: "Some files are CSV, others are proprietary Excel macros only our team can open."
+      is_dont_know: false
+    checks: [format, plain_language, no_fair_jargon, grounded, no_invented_facts, length]
+
+  - id: minor-gap-no-note
+    indicator_id: fair.f4-discoverable
+    answer:
+      value: "partial"
+      label: "Partially / inconsistently true"
+      note: null
+      is_dont_know: false
+    checks: [format, plain_language, no_fair_jargon, no_invented_facts, length]
+
+  - id: dont-know-case
+    indicator_id: fair.a2-metadata-persistence
+    answer:
+      value: "dont_know"
+      label: "I don't know"
+      note: null
+      is_dont_know: true
+    checks: [format, plain_language, no_fair_jargon, finds_out_not_fixes, length]
+
+  - id: dont-know-with-thin-note
+    indicator_id: fair.a1-2-access-control
+    answer:
+      value: "dont_know"
+      label: "I don't know"
+      note: "Not sure, might be IT's responsibility."
+      is_dont_know: true
+    checks: [format, plain_language, no_fair_jargon, finds_out_not_fixes, length]
+
+  - id: repository-guidance-case
+    indicator_id: fair.r1-1-license
+    answer:
+      value: "no"
+      label: "No, not true"
+      note: "This is de-identified clinical trial data from a multi-site TB study."
+      is_dont_know: false
+    checks: [format, plain_language, no_fair_jargon, grounded, no_invented_facts, repository_fits_situation]
+
+# Plan-generation coverage: a plan is checked mechanically (does every open
+# finding actually get addressed by some step, with no id silently dropped
+# due to a hallucination or parse failure) rather than by LLM judge -- this
+# is exactly the failure mode plan.py's own defensive parser exists to
+# guard against, so the eval proves that guard actually holds in practice
+# against live output, not just against the parser's own unit tests.
+plan_cases:
+  - id: five-gap-plan
+    findings:
+      - { indicator_id: fair.f1-identifier, severity: minor_gap }
+      - { indicator_id: fair.f4-discoverable, severity: major_gap }
+      - { indicator_id: fair.a1-access-process, severity: major_gap }
+      - { indicator_id: fair.r1-data-dictionary, severity: major_gap }
+      - { indicator_id: fair.r1-1-license, severity: major_gap }

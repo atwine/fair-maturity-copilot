@@ -16,9 +16,14 @@ export function SiteHeader() {
           <LogoMark className="size-7 shrink-0" />
           FAIR Maturity Copilot
         </Link>
-        <Link href="/about" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
-          About this tool
-        </Link>
+        <nav className="flex items-center gap-4">
+          <Link href="/navigator" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
+            Which tool fits?
+          </Link>
+          <Link href="/about" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
+            About this tool
+          </Link>
+        </nav>
       </div>
     </header>
   );

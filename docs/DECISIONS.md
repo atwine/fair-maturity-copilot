@@ -377,3 +377,33 @@ The `RULES` section's plain-language example was also updated from "services lik
 **Checked the plan prompt too, per the issue's scope:** `fairification_plan.jinja` does not hardcode a repository name — no change needed there.
 
 **Verified live:** all 6 `test_report_live.py` tests pass against the real vLLM endpoint (125.55s), confirming the new prompt renders and the model produces well-formed `SUMMARY:`/`STEPS:` output with the broader guidance. 42/42 non-live tests also pass.
+
+## v31 — issue #18: a "which tool fits your situation" navigator
+
+Issue #18 asked for a branching guide extending `/about`, to help users determine which FAIR tool is most appropriate for their situation — not everyone who lands on this tool is in the right place, and `/about` alone is a passive reference page, not an active router.
+
+**What was built** (`feature/navigator`, merged to `development`):
+- A new `/navigator` route (`frontend/app/navigator/page.tsx`) and client component (`frontend/components/navigator.tsx`) — a 6-question branching tree that routes users to the right tool based on their situation.
+- The tree distinguishes: datasets vs. ontologies/vocabularies; FAIR familiarity level (new vs. experienced); published vs. unpublished data; single-site vs. multi-site consortium; and specific topic (repository deposit, trust certification, etc.).
+- 7 destination recommendations, each with a mini-roadmap format: what the tool does, why it fits the user's situation, how to use it, what to do next, and separate guidance for new vs. experienced users. Destinations cover: this tool itself (FAIR Maturity Copilot), FAIR-Aware, F-UJI, the RDA FAIR Data Maturity Model, CoreTrustSeal, AgroPortal/O'FAIRe, and the ARDC FAIR Data Framework.
+- All external URLs verified live — several broken/outdated links were caught and corrected during development (notably O'FAIRe's standalone URL now redirects to AgroPortal, and FOOPS!'s `w3id.org` API endpoint returned 404).
+- Links to the navigator added in three places: the `SiteHeader` ("Which tool fits?"), the `/about` page's landscape section, and a secondary link on the landing page below "Start an assessment" ("Not sure if this is the right tool for you? Find out which FAIR tool fits your situation →").
+
+**Design decision — secondary link, not a gate:** the navigator is linked from the landing page as an optional escape hatch, not a mandatory gate before assessment. Most users who land on this tool are in the right place; forcing them through a branching questionnaire before they can start would add friction for the majority to help a minority. The uncertain user sees the link and can self-select into the navigator.
+
+**Verified:** `tsc --noEmit` and `eslint` clean. `next build` succeeded. Live in the browser — the branching tree navigates correctly through all paths, destination content renders, and all three entry points (header, about page, landing page) link correctly.
+
+## v32 — staging review gap: code promoted to staging without the Claude Code review pass
+
+**This is a process gap, not a code decision — recorded here so it survives context resets and is visible to any agent picking up the project cold.**
+
+The HANDOFF entry from 2026-08-26 (line ~614) established a new standing process: the `code-review` skill must run on Claude Code before every `development` → `staging` promotion, not on Devin's side. This was prompted by Devin's sub-agent quota being exhausted that week, but was explicitly declared as the permanent process going forward — two different tools catching different mistakes is better than one tool reviewing its own work.
+
+**What slipped through:** `staging` is currently 3 commits ahead of `origin/staging` (the issue #6 repository-recommendations work, merged locally via commit `e5937fd`). This merge to `staging` happened **without** the Claude Code `code-review` pass — it was done with a manual inline review only (60/60 tests green, no findings), which is the first-pass pattern Devin can still do, but not the independent second review the new process requires. The `staging` branch has not been pushed to `origin/staging` — it's sitting locally, waiting for the review to happen.
+
+**What needs to happen before this can be promoted further:**
+1. Run the `code-review` skill on Claude Code against the `origin/staging...staging` diff (or equivalently, the 3 unpushed commits).
+2. Address any findings.
+3. Only then push `staging` to `origin/staging` and consider the `staging` → `main` PR.
+
+**This is not a code quality assertion** — the manual review passed and all tests are green. The gap is procedural: the new process wasn't followed for this specific promotion. The code itself may be fine; it just hasn't had the independent second review the project's own rules now require.

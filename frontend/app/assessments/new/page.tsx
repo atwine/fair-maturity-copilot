@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,17 @@ export default function NewAssessmentPage() {
   const [subjectLabel, setSubjectLabel] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The database can take several seconds to wake from idle on its first
+  // request (Neon's free-tier compute scales to zero) -- without this, a
+  // slow-starting request looks identical to a hung one. Delayed rather
+  // than shown immediately so it doesn't flicker on the common fast path.
+  const [showSlowHint, setShowSlowHint] = useState(false);
+
+  useEffect(() => {
+    if (!submitting) return;
+    const timer = setTimeout(() => setShowSlowHint(true), 2000);
+    return () => clearTimeout(timer);
+  }, [submitting]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,6 +69,11 @@ export default function NewAssessmentPage() {
             <Button type="submit" disabled={submitting || !subjectLabel.trim()} className="w-full">
               {submitting ? "Starting..." : "Start assessment"}
             </Button>
+            {submitting && showSlowHint && (
+              <p className="text-center text-sm text-muted-foreground">
+                Still going &mdash; this can take a few seconds the first time.
+              </p>
+            )}
           </form>
         </CardContent>
       </Card>

@@ -178,6 +178,7 @@ def start_conversation(
         history=[],
         user_text="(The person just opened this chat. Greet them briefly and invite them to describe where they are.)",
         valid_indicator_ids={i.id for i in indicators},
+        allow_tool_call=False,
     )
     opening_message = MentorMessage(conversation_id=conversation.id, role="mentor", content=opening_text)
     session.add(opening_message)

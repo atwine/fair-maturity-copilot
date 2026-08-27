@@ -18,7 +18,7 @@ shape is enforced by the provider, not hoped for from a regex."""
 
 import json
 
-from app.engine.llm_client import generate_chat_with_tools
+from app.engine.llm_client import generate_chat, generate_chat_with_tools
 from app.engine.models import MentorMessage
 
 # The model's whole conversational reply is carried as this tool's own
@@ -105,19 +105,37 @@ def _parse_tool_call(tool_call, valid_indicator_ids: set[str] | None) -> tuple[s
 
 
 def run_mentor_turn(
-    *, system_prompt: str, history: list[MentorMessage], user_text: str, valid_indicator_ids: set[str]
+    *,
+    system_prompt: str,
+    history: list[MentorMessage],
+    user_text: str,
+    valid_indicator_ids: set[str],
+    allow_tool_call: bool = True,
 ) -> tuple[str, MentorAction | None]:
     """Runs one turn: system prompt + prior history + the new user message,
     one LLM call, returns the text to show the user plus any action it
     should trigger. No database access here -- callers own persisting the
     MentorMessage rows and actually applying the action (calling into the
     existing answer-update/rescore machinery), mirroring how
-    remediation.py/plan.py stay pure functions of their inputs."""
+    remediation.py/plan.py stay pure functions of their inputs.
+
+    allow_tool_call=False skips offering confirm_indicator_fix at all --
+    for the opening greeting (empty history, a synthetic "say hi" user_text),
+    not a real conversation turn a fix could have been confirmed in. Without
+    this, live testing against real vLLM showed the model reliably calls the
+    tool anyway on that very first turn (nothing to confirm yet), and its
+    reply_to_user argument came back genuinely empty often enough to produce
+    a blank opening chat bubble -- the routes_mentor.py /start handler
+    already discards any action from this call, so offering the tool there
+    bought nothing but that failure mode."""
     messages = [{"role": "system", "content": system_prompt}]
     for m in history:
         role = "assistant" if m.role == "mentor" else "user"
         messages.append({"role": role, "content": m.content})
     messages.append({"role": "user", "content": user_text})
+
+    if not allow_tool_call:
+        return generate_chat(messages), None
 
     content, tool_calls = generate_chat_with_tools(messages, tools=[_CONFIRM_FIX_TOOL])
     if tool_calls:

@@ -608,3 +608,21 @@ The mentor scoped in `docs/DECISIONS.md` v19 was implemented in two parts, both 
 **This work is on `feature/mentor-tool-calling`, not yet merged into `development`** — pending self-review and the user's go-ahead to push.
 
 **Open questions carried forward:** unchanged from the entry above, plus: whether to pick up the plan/remediation parsing conversions as follow-up issues now that this one's proven the approach works against real infrastructure.
+
+---
+
+## 2026-08-26 — Process change: code-review skill now required before every development → staging promotion (run via Claude Code)
+
+**Why this is being recorded here, not just in `AGENTS.md`:** the project owner wants this to survive context resets and be visible to any agent (Devin or Claude) picking up this project cold. The `devlog/HANDOFF.md` is the first thing a new session reads.
+
+**What happened:** during this session, the `code-review` skill (which spawns two parallel sub-agents for a two-axis Standards + Spec review) was attempted for the first `development` → `staging` promotion. It failed with "weekly usage quota exhausted" on Devin's side. The review was done manually inline instead — which worked for a small diff but is not the robust pattern the project's `AGENTS.md` and the project owner's global `CLAUDE.md` both call for.
+
+**The new rule, effective now:**
+- **All changes stop at `development` on Devin's side.** Devin can build, test, self-review, and merge feature branches into `development` locally — same as before.
+- **The `code-review` skill pass happens on Claude Code before promoting `development` → `staging`.** The project owner has Claude Code quota available; Devin's sub-agent quota is exhausted this week. Run `/code-review` there against `origin/staging...origin/development` (or the equivalent fixed point) before merging to staging and pushing.
+- **This is not a one-week workaround — it's the new standing process.** Even after Devin's quota resets, doing the review on Claude Code gives an independent review pass on a different toolchain, which is closer to the "second independent review" the project owner's global `CLAUDE.md` already calls for before production-facing promotions. Two different tools catching different mistakes is better than one tool reviewing its own work.
+- **Devin can still do a manual inline review** as a first pass (catch obvious issues before handing off), but it does not replace the Claude Code `code-review` pass.
+
+**For any agent reading this in a future session:** if you're on Devin and about to promote `development` → `staging`, stop. Build and test on Devin, merge to `development` locally, push to `origin/development`, then tell the project owner to run the `code-review` skill on Claude Code before the staging promotion. Do not merge to staging and push without that review having happened — this is the same hard limit `AGENTS.md` already sets (explicit go-ahead required), with the added specificity that the go-ahead should follow a Claude Code review pass.
+
+**Current state at time of writing:** `staging` was merged locally (commit `e5937fd`, issue #6 — repository recommendations) but **not yet pushed to `origin/staging`**, pending this process being followed. The project owner may choose to push it as-is (the manual review passed, 60/60 tests green) or run the Claude Code review first — their call.

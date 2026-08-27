@@ -361,3 +361,19 @@ Deleted the throwaway measurement script after use, per this project's standing 
 **Verified live end-to-end, not just via the parser unit tests:** all 7 tests in `tests/api/test_mentor_live.py` pass against the real vLLM endpoint, including `test_confirming_a_fix_in_chat_updates_the_real_answer_and_rescores` — the one that proves a real tool call reaches all the way through to the existing answer-update/rescore machinery, live. Full suite: 60/60 (42 non-live + 18 live).
 
 **Left for later, deliberately, per the issue's own scope:** the plan's `GOAL:`/`STEP:`/`ADDRESSES:` parsing and the remediation writer's `SUMMARY:`/`STEPS:` parsing use the same kind of text-marker convention and could, in principle, benefit the same way — but issue #15 explicitly scoped this to the mentor's action line first, as a separate follow-up if this one goes cleanly. It did; those two remain unconverted.
+
+## v30 — issue #6: repository decision rule baked into the remediation prompt
+
+A small backlog item that had been sitting unused since v16's reference-document synthesis: the 7-repository comparison (Dataverse, Dryad, Figshare, Mendeley Data, OSF, Vivli, Zenodo) produced a concrete decision rule, but `remediation.jinja` still hardcoded Zenodo alone — every "assign a DOI" suggestion defaulted to naming one repository regardless of the user's situation.
+
+**What changed:** `remediation.jinja` gained a new `REPOSITORY GUIDANCE` section between `YOUR TASK` and `RULES`, giving the LLM the four-option decision rule as context it can reason from when a step involves depositing data or getting a DOI — pick one based on their situation, don't list all four:
+- Zenodo (free, no affiliation needed, 200GB/record) — the sensible default.
+- OSF (free, preservation continuity fund) — when hosting durability matters.
+- Their university's own Dataverse (free, 1TB+) — when they're at an institution that hosts one.
+- Vivli (de-identified clinical trial data, ethics-gated managed access) — only when that's the kind of data they have.
+
+The `RULES` section's plain-language example was also updated from "services like Zenodo can create for free" to "a data repository like Zenodo or OSF can create for free" — so even the example doesn't single-name one repository. `PROMPT_VERSION` bumped `fair-remediation-v2` → `fair-remediation-v3`.
+
+**Checked the plan prompt too, per the issue's scope:** `fairification_plan.jinja` does not hardcode a repository name — no change needed there.
+
+**Verified live:** all 6 `test_report_live.py` tests pass against the real vLLM endpoint (125.55s), confirming the new prompt renders and the model produces well-formed `SUMMARY:`/`STEPS:` output with the broader guidance. 42/42 non-live tests also pass.

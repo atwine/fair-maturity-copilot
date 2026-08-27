@@ -140,22 +140,24 @@ const DESTINATIONS: Record<DestinationId, Destination> = {
   },
   "level-2": {
     id: "level-2",
-    name: "This tool's Level 2 + FAIR-DSM",
+    name: "Multi-Site Harmonization Readiness",
     tagline: "For coordinating data across multiple sites or organizations",
     whatItDoes:
-      "When you're coordinating data across multiple sites, the single-group 12 questions aren't enough. This tool's planned Level 2 content covers field-level consistency and shared data dictionaries across sites — the harmonization readiness that has to happen before any common data model conversion. FAIR-DSM (the FAIRplus Dataset Maturity Model) covers the same ground from the institutional-infrastructure side: it defines 5 maturity levels across content, representation, and hosting environment capabilities, with indicators at dataset, field, and value-set granularity.",
+      "When you're coordinating data across multiple sites, the single-group 12 questions aren't enough. This tool has a second, short check for exactly this: 6 plain-language questions on whether your sites describe their data consistently enough to combine and compare — shared field names, a common data dictionary, standardized categories, and a way to link records across sites without exposing who anyone is. A genuine \"we haven't started this yet\" is a real answer here, not a failure — that's expected for an initiative at an early stage. For anything bigger than that — actual shared databases, cross-site query infrastructure — that's real institutional/IT work, and FAIR-DSM (the FAIRplus Dataset Maturity Model) is the framework that covers it.",
     whyItFits:
-      "You said you're coordinating data across multiple sites or organizations. That's a fundamentally different problem from a single group checking their own practices — it requires harmonization across data sources, shared metadata standards, and infrastructure that can support cross-site querying. No single tool solves this; it's a combination of this tool's Level 2 assessment plus the FAIR-DSM framework.",
+      "You said you're coordinating data across multiple sites or organizations. That's a fundamentally different problem from a single group checking their own practices — it's specifically about whether your sites' data lines up with each other, which is exactly what this second check assesses.",
     howToUse:
-      "First, run our 12-question assessment on each site's data independently to establish a baseline. Then review the FAIR-DSM model (fairplus.github.io/Data-Maturity) to understand what Level 2 requires across content, representation, and hosting. The gap between your baseline and DSM Level 2 is your work plan.",
+      "First, run our 12-question assessment on each site's data independently to establish a baseline. Then run the 6-question harmonization-readiness check below to see where the sites stand relative to each other — it takes about 10 minutes and gives you a score, a report, and a plan, same as the first check.",
     whatsNext:
-      "Once each site passes the 12-question baseline and you've closed the Level 2 gaps, the next step is FAIR-DSM Level 3 — semantic databases and shared query infrastructure. That's typically where institutional IT and data governance teams take over. If your repository needs external trustworthiness certification, look at CoreTrustSeal.",
-    internalHref: "/about",
-    internalLabel: "Read more about the landscape",
+      "Once you've closed the harmonization-readiness gaps, the next step is real shared infrastructure — semantic databases, cross-site query tooling. That's typically where institutional IT and data governance teams take over, using the FAIR-DSM framework (fairplus.github.io/Data-Maturity) as their own reference. If your repository needs external trustworthiness certification, look at CoreTrustSeal.",
+    internalHref: "/assessments/new?adapter=harmonization-v0",
+    internalLabel: "Start the harmonization check",
+    externalUrl: "https://fairplus.github.io/Data-Maturity/",
+    externalLabel: "See the full FAIR-DSM framework",
     newbie:
-      "Start by understanding what 'harmonization' means in practice: it's making sure that when Site A says 'patient_age' and Site B says 'age_years', a computer can tell they're the same thing. That requires shared data dictionaries and agreed-upon field definitions. Run our 12 questions first to see where each site stands individually.",
+      "Start by understanding what 'harmonization' means in practice: it's making sure that when Site A says 'patient_age' and Site B says 'age_years', a computer can tell they're the same thing. That requires shared data dictionaries and agreed-upon field definitions. Run our 12 questions first to see where each site stands individually, then the 6-question harmonization check to see how they compare.",
     experienced:
-      "The FAIR-DSM model's three granularity levels (dataset, field, value-set) map well to a phased rollout: harmonize dataset-level metadata first, then field-level definitions, then controlled value sets. The DSM indicators are the concrete checklist. If you're building shared infrastructure, also look at FAIR Implementation Profiles (FIPs) — the emerging standard for declaring a community's specific FAIR choices.",
+      "The harmonization check below covers naming consistency, tidy-data structure, a shared dictionary, linkage keys, standardized categorical values, and a written field-mapping — the concrete, bounded slice of FAIRplus-DSM Level 2 this tool actually implements. For the deeper institutional infrastructure tiers (shared databases, cross-site query APIs, FAIR Implementation Profiles), FAIR-DSM's full framework is the reference, not something this tool rebuilds.",
   },
   coretrustseal: {
     id: "coretrustseal",

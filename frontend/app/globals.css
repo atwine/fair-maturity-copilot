@@ -20,6 +20,14 @@
   --color-severity-major-soft: var(--severity-major-soft);
   --color-severity-unknown: var(--severity-unknown);
   --color-severity-unknown-soft: var(--severity-unknown-soft);
+  --color-severity-not-started: var(--severity-not-started);
+  --color-severity-not-started-soft: var(--severity-not-started-soft);
+  --color-group-a: var(--group-a);
+  --color-group-a-soft: var(--group-a-soft);
+  --color-group-b: var(--group-b);
+  --color-group-b-soft: var(--group-b-soft);
+  --color-group-c: var(--group-c);
+  --color-group-c-soft: var(--group-c-soft);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -93,6 +101,24 @@
   --severity-major-soft: #f5e0dc;
   --severity-unknown: #5b4b8a;
   --severity-unknown-soft: #e9e5f2;
+  /* "Not started yet" (issue #16): a genuinely neutral, non-penalized
+     outcome -- deliberately not severity-unknown's purple ("worth finding
+     out" reads as a question mark; this should read as "early, and that's
+     fine"), and not close enough to severity-major/minor's warm reds/
+     browns to look like a variant of "needs attention". A cool, calm
+     blue-gray, contrast-checked against --card the same way severity-minor
+     was (docs/DECISIONS.md v34). */
+  --severity-not-started: #3d6b8a;
+  --severity-not-started-soft: #dde8ef;
+  /* Principle-group palette for FairSpectrum/PrincipleChip's non-FAIR
+     groups (harmonization-v0's 3 categories) -- distinct hues from every
+     severity color above, so a group label is never mistaken for a status. */
+  --group-a: #2f5f8a;
+  --group-a-soft: #dce8f2;
+  --group-b: #7a3f66;
+  --group-b-soft: #f0dfe9;
+  --group-c: #4a5568;
+  --group-c-soft: #e3e6ea;
   --chart-1: #1f5c54;
   --chart-2: #b9862f;
   --chart-3: #5b4b8a;
@@ -138,6 +164,14 @@
   --severity-major-soft: #34211c;
   --severity-unknown: #a595d6;
   --severity-unknown-soft: #292440;
+  --severity-not-started: #7fb8d9;
+  --severity-not-started-soft: #1a2733;
+  --group-a: #6fa8d8;
+  --group-a-soft: #1c2733;
+  --group-b: #d488b3;
+  --group-b-soft: #2e1f28;
+  --group-c: #a3aebc;
+  --group-c-soft: #262b31;
   --chart-1: #4fa89a;
   --chart-2: #d2a259;
   --chart-3: #a595d6;

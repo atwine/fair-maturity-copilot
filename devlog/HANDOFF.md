@@ -78,6 +78,11 @@ Running context for any agent (Claude, Devin, or a fresh session of either) pick
 1. PyYAML's "Norway problem" — unquoted `yes`/`no` in `indicators.yaml` were silently parsed as Python `True`/`False`, breaking every rubric lookup. Caught by running the tests, not by reading the code. Fixed by quoting them; comment left in the YAML explaining why.
 2. `seed_indicators.py` raised `DetachedInstanceError` reading `adapter.id` in a log message after the DB session that owned it had closed. Fixed by capturing the value before the session closes.
 3. (Self-review, after the above) `indicators.yaml`'s `&anchor`/`*alias` reuse meant every indicator sharing the default rubric/options pointed at the literal same Python object, not a copy — a latent shared-mutable-state bug if any future code customizes one indicator's rubric. Fixed with `copy.deepcopy` in `content.py`.
+4. (Same pass) the YAML file was being parsed from disk three separate times per `FairAdapter` construction. Fixed with a single `@lru_cache`d loader.
+
+**What's next:** Checkpoint 3 (synthetic demo datasets) or Checkpoint 4 (backend REST API) — see `ROADMAP.md`. This work is sitting on `feature/fair-indicators`, not yet merged into `development` — needs a self-review confirmation and a "push development" go-ahead like last time before it lands there.
+
+**Open questions carried forward:** Neon Postgres still not provisioned (seed script only smoke-tested against SQLite so far — Postgres-specific behavior, e.g. the JSON column type, isn't proven yet). Promotion cadence for development→staging→main still unconfirmed by the user.
 
 ---
 
@@ -114,13 +119,6 @@ with **zero visible behavior change** to today's check, proven by the full
 existing test suite passing unchanged plus new tests for the new behavior.
 Exact file list is in the plan doc's "PR 1" section.
 
-**What's next, in order, per the plan doc:** finish PR 1 → PR 2
-(`harmonization-v0` adapter content/backend) → PR 3 (frontend plumbing) → PR 4
-(the two entry points: report-page suggestion card + navigator rework) → one
-`development → staging → main` promotion pass with both required review
-passes. Do not skip either review pass. Do not push anything without the
-project owner's explicit go-ahead first, per standing convention.
-
 **Open/carried-forward items specific to this feature** (flagged during
 planning, not yet resolved — see the plan doc's "Risks" discussion in the
 design agent's notes, not reproduced in the committed plan doc itself):
@@ -132,19 +130,161 @@ design agent's notes, not reproduced in the committed plan doc itself):
   won't implement the new `build_plan` Protocol method — harmless at runtime
   (Python Protocols are structural/unenforced without a type checker) but
   worth a stub method if static type-checking turns out to be wired up.
-  **Not yet checked as of this entry** — no `.github/workflows/` found in a
-  first pass, so likely not CI-enforced, but confirm before assuming.
+  Checked: **no `.github/workflows/` exists in this repo at all** — not
+  CI-enforced, confirmed, not just assumed. A stub `build_plan` was added to
+  `FakeAdapter` anyway, cheap and documents the Protocol shape correctly.
 
-**How to update this entry going forward:** don't rewrite it — when a PR
-from the plan lands, append a new dated entry below this one (same format as
-every other entry in this file: what exists now, what was decided, what's
-next, open questions), same as always. This entry stays as the "mid-PR-1"
-snapshot.
-4. (Same pass) the YAML file was being parsed from disk three separate times per `FairAdapter` construction. Fixed with a single `@lru_cache`d loader.
+---
 
-**What's next:** Checkpoint 3 (synthetic demo datasets) or Checkpoint 4 (backend REST API) — see `ROADMAP.md`. This work is sitting on `feature/fair-indicators`, not yet merged into `development` — needs a self-review confirmation and a "push development" go-ahead like last time before it lands there.
+## 2026-08-27 (continued) — PR 1 done, PR 2 + PR 3 built, tests passing
 
-**Open questions carried forward:** Neon Postgres still not provisioned (seed script only smoke-tested against SQLite so far — Postgres-specific behavior, e.g. the JSON column type, isn't proven yet). Promotion cadence for development→staging→main still unconfirmed by the user.
+**Status update, same session as the entry above.** PR 1 (engine fixes) is
+now **committed and merged into `development` locally** — commit `2c7b6cd`
+on `feature/engine-plan-boundary-fix`, merged via `aee117b`. **Not pushed
+to GitHub yet** — asked, and the project owner said to keep batching rather
+than push after every PR. Full suite passed (68/68, up from 60) before that
+merge.
+
+**PR 2 (harmonization-v0 adapter, backend) is fully written, not yet
+committed.** Everything under `backend/app/adapters/harmonization/`
+(`adapter.py`, `content.py`, `indicators.yaml` with the 6 real, previously-
+agreed questions, `prompt.py` + `prompts/remediation.jinja`, `plan.py` +
+`prompts/harmonization_plan.jinja`, `mentor_prompt.py` +
+`prompts/mentor_system.jinja`), registered in `app/adapters/registry.py`,
+plus the promised `app/engine/content_loader.py` extraction (both adapters'
+`content.py` are now thin wrappers over it). New tests:
+`tests/adapters/harmonization/test_adapter.py`, `test_plan.py`,
+`tests/api/test_harmonization_flow.py` (fast, no LLM),
+`tests/api/test_harmonization_live.py` (2 lean live tests — deliberately
+NOT a full mirror of `test_report_live.py`/`test_plan_live.py`'s every
+case, since the route mechanics those cover are engine-level code already
+proven live against fair-v0; re-running all of it against a second adapter
+would be redundant LLM calls for no new coverage — see that file's own
+docstring for the reasoning). Eval harness extended: `backend/eval/golden_set.yaml`
+gained `harmonization_remediation_cases`/`harmonization_plan_cases`
+(6 remediation cases incl. two `not_started` ones, 1 plan case), and
+`backend/scripts/run_eval.py` is now adapter-parameterized (was hardcoded
+to `FairAdapter`).
+
+**PR 3 (frontend plumbing) is fully written, not yet committed.**
+`frontend/lib/types.ts` (added `not_started`, widened `PrincipleGroup` to
+`string`), `frontend/components/fair-spectrum.tsx` (rewritten to look up
+colors from an explicit table keyed by group name — including fair-v0's
+exact original 4 classes, unchanged — rather than a hash, specifically to
+avoid the collision risk a hash-based approach was flagged as carrying),
+`frontend/app/globals.css` (new `--severity-not-started(-soft)` and
+`--group-a/b/c(-soft)` tokens, **contrast-checked**: all 10 new
+text-on-background pairs pass WCAG AA, 4.60:1 to 7.77:1),
+`frontend/app/assessments/[id]/report/page.tsx` (3-way bucket split with a
+new "Not started yet" section, the plan-button visibility bug the plan doc
+predicted is fixed, "See your FAIRification plan" button label genericized
+to "See your plan" since that FAIR-specific wording would be wrong on a
+harmonization report). Also touched in passing: `backend/app/api/schemas.py`'s
+two stale comments describing `principle_group`/`value` as closed 4-item
+sets — updated to say what's actually true now. **Not yet verified live in
+a browser** — per the plan, that happens for real once PR 4 makes
+harmonization-v0 actually reachable through the UI; this PR's own
+verification step (confirm fair-v0 renders pixel-identical) is still
+outstanding.
+
+**Test result: full backend suite passed, 83/83 (up from 68 after PR 1,
+up from 60 originally) — zero regressions, PR 2's new adapter fully
+covered.** Confirmed via `cd backend && ./.venv/Scripts/python.exe -m
+pytest tests/ -q`.
+
+**What's next, in order:** run `scripts/run_eval.py` against the extended
+golden set and read the report (not yet done as of this entry) → commit
+PR 2 and PR 3 as separate commits (both built in this one sitting, but the
+plan's PR boundaries still apply) → merge both into `development` locally
+→ PR 4 (the two entry points: report-page suggestion card,
+`assessments/new` accepting a link parameter, `navigator.tsx`'s "multiple
+sites" rework) → live browser walkthrough → docs (`docs/DECISIONS.md`,
+`CHANGELOG.md`, `ROADMAP.md`, close issue #16) → ask before pushing
+`development` → the `staging`/`main` promotion pass with both required
+review passes.
+
+---
+
+## 2026-08-27 (continued) — Issue #16 done: all 4 PRs merged to `development`, live-verified, docs closed out
+
+**This is the completion entry for the two entries above — read this one
+first if picking this project up now, the earlier two are the in-progress
+trail that got here.**
+
+**Everything in `docs/PLANS/issue-16-harmonization-plan.md` is built,
+merged to `development` locally, and live-verified.** `development` is 6
+commits ahead of `origin/development`, **not yet pushed** — same standing
+instruction as before (batch, ask first). Commit sequence: `2c7b6cd`/`aee117b`
+(PR 1, engine fixes), `acc4683`/(merge) (PR 2, harmonization-v0 backend +
+eval harness), `7928b68`/(merge) (PR 3+4 combined — see below for why),
+`78e8d32`/(merge) (3 bug fixes found during live verification, below).
+
+**Real deviation from the plan, done deliberately and noted here rather
+than silently:** PR 3 (frontend plumbing) and PR 4 (reachability) got built
+in the same sitting before either was committed, and ended up touching the
+same files (`report/page.tsx` in particular) — so they shipped as one
+combined commit/merge instead of two. Called out explicitly in that
+commit's own message. No loss of information, just a different commit
+boundary than the plan sketched.
+
+**Three real bugs were caught by actually running the new flow in a
+browser, not by any test:**
+1. `question/[indicatorId]/page.tsx` and `review/page.tsx` still hardcoded
+   `ADAPTER_ID = "fair-v0"`, fetched in parallel with the assessment via
+   `Promise.all` — a harmonization run hung forever on "Loading this
+   assessment…" because it was fetching fair-v0's 12 questions and could
+   never find its own indicator ids. Fixed by fetching the assessment
+   first and reading its own `adapter_id`.
+2. `plan/page.tsx`'s eyebrow label was hardcoded "Your FAIRification
+   plan" — wrong wording on a harmonization report. Genericized to "Your
+   plan".
+3. (Caught and fixed inline, not via a bug — worth remembering anyway) two
+   dev servers from earlier in this session were still running on ports
+   8000/3000 with stale code, plus a handful of ghost TCP LISTENING
+   entries with no live process behind them (`Get-Process` returned
+   nothing for the PID `netstat` named) — a real quirk of this specific
+   Windows environment, not a code issue. Worked around by using port 8010
+   for the one-off verification pass rather than fighting the ghost
+   entries; `.env.local` created temporarily for this and deleted after.
+   If dev servers won't bind next time, check for stale processes/ghost
+   listeners before assuming the code is broken.
+
+**Full verification, all real (not simulated), before promotion:**
+- Backend: 83/83 tests pass. Eval harness (both adapters' golden sets):
+  15/16 — the 1 failure is the same pre-existing, already-documented (v33)
+  LLM-judge non-determinism on an unrelated fair-v0 case, not a regression;
+  both new `not_started` cases and both plan cases passed clean.
+- Frontend: `tsc --noEmit` and `eslint` both clean.
+- Live browser, full harmonization-v0 flow: navigator entry point →
+  6-question flow incl. a real "We haven't started this yet" answer →
+  review → complete → report (score correctly excludes the not_started
+  finding — 5 real passes + 1 not_started scored identically to 6 passes,
+  100/100; separate "Not started yet" section; "how to begin" remediation
+  tone, not "how to fix") → plan (the not_started item got a real 2-step
+  "how to begin" plan entry, not excluded like a passing item would be) →
+  mentor (greeted correctly, grounded in the harmonization content, no
+  jargon, the opening-greeting tool-call fix from earlier this session
+  still holds for the new adapter too).
+- Live browser, fair-v0 regression check: pixel-identical to before —
+  "Question 1 of 12", original 4 spectrum colors, only 4 answer options
+  (no 5th-option leak from the new adapter's content).
+
+**Docs closed out:** `docs/DECISIONS.md` v35 (full writeup — the core
+adapter-vs-extend decision and why, the boundary-leak fix, the
+`not_started` scoring design, the three live-caught bugs), `CHANGELOG.md`
+(Added + Fixed entries), `ROADMAP.md` (Checkpoint 10, marked done; issue
+#17 added to "Bigger directions to evaluate later" as the natural,
+explicitly-not-yet-scoped follow-on). Issue #16 itself: **not yet closed on
+GitHub as of this entry** — closing it is the next action, via the PR that
+eventually promotes this to `main` (same pattern as issue #2 earlier this
+session), not before.
+
+**What's left, in order:** close issue #16 (comment + close, or via the
+eventual PR) → ask before pushing `development` to GitHub → `staging`
+promotion with the required `code-review` skill pass → ask before pushing
+`staging` → `main` PR with the required `open-code-review-delegate` pass →
+ask before merging. Nothing code-wise is left; everything from here is the
+review/promotion workflow itself.
 
 ---
 

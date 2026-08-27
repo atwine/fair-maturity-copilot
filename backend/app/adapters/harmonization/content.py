@@ -1,8 +1,6 @@
 """Thin wrapper over app.engine.content_loader, pointed at this adapter's
-own indicators.yaml. The actual parsing logic is generic and lives in the
-engine (issue #16) -- this file exists so every other module can keep
-calling load_indicators()/load_options_by_indicator_id() with no arguments,
-same as before that logic moved.
+own indicators.yaml. See app/adapters/fair/content.py for the identical
+pattern -- the loading logic itself is generic and lives in the engine.
 """
 
 from functools import partial

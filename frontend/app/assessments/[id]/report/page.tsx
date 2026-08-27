@@ -18,9 +18,10 @@ const SEVERITY_LABEL: Record<Finding["severity"], string> = {
   minor_gap: "Minor gap",
   major_gap: "Needs attention",
   unknown: "Worth finding out",
+  not_started: "Not started yet",
 };
 
-// Own severity chip, not shadcn's Badge variants -- this app has 4 distinct
+// Own severity chip, not shadcn's Badge variants -- this app has 5 distinct
 // states (not shadcn's default/secondary/destructive/outline), so it needs
 // its own semantic color set rather than being squeezed into a generic one.
 const SEVERITY_STYLE: Record<Finding["severity"], string> = {
@@ -28,6 +29,7 @@ const SEVERITY_STYLE: Record<Finding["severity"], string> = {
   minor_gap: "bg-severity-minor-soft text-severity-minor",
   major_gap: "bg-severity-major-soft text-severity-major",
   unknown: "bg-severity-unknown-soft text-severity-unknown",
+  not_started: "bg-severity-not-started-soft text-severity-not-started",
 };
 
 function SeverityBadge({ severity }: { severity: Finding["severity"] }) {
@@ -53,6 +55,12 @@ export default function ReportPage() {
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState<string | null>(null);
+  // Only used to decide whether to show the "also check multi-site
+  // harmonization" suggestion below (issue #16) -- the report itself
+  // doesn't carry adapter_id, so this is a small, separate, non-blocking
+  // fetch rather than a report-schema change. Not shown at all until this
+  // resolves, so there's no risk of flashing the wrong suggestion.
+  const [adapterId, setAdapterId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +71,14 @@ export default function ReportPage() {
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof ApiError ? err.message : "Couldn't load the report.");
+      });
+    api
+      .getAssessment(runId)
+      .then((a) => {
+        if (!cancelled) setAdapterId(a.adapter_id);
+      })
+      .catch(() => {
+        // Non-critical -- the suggestion card just stays hidden if this fails.
       });
     return () => {
       cancelled = true;
@@ -110,7 +126,12 @@ export default function ReportPage() {
     );
   }
 
-  const needsAttention = report.findings.filter((f) => f.severity !== "pass");
+  // Three buckets, not two (issue #16): "not_started" is excluded from
+  // needsAttention on purpose -- it has no score impact and isn't a
+  // failure, so grouping it with real gaps would misrepresent it. It gets
+  // its own section instead, between the two existing ones.
+  const notStarted = report.findings.filter((f) => f.severity === "not_started");
+  const needsAttention = report.findings.filter((f) => f.severity !== "pass" && f.severity !== "not_started");
   const looksGood = report.findings.filter((f) => f.severity === "pass");
 
   return (
@@ -123,26 +144,48 @@ export default function ReportPage() {
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">out of 100</p>
             <p className="text-base">
-              {needsAttention.length === 0
+              {needsAttention.length === 0 && notStarted.length === 0
                 ? "Every indicator checked out clean."
-                : `${needsAttention.length} of ${report.findings.length} indicators have something worth fixing.`}
+                : needsAttention.length === 0
+                  ? `${notStarted.length} indicator${notStarted.length === 1 ? "" : "s"} haven't been started yet -- that's not counted against you.`
+                  : `${needsAttention.length} of ${report.findings.length} indicators have something worth fixing.`}
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {needsAttention.length > 0 && (
+      {(needsAttention.length > 0 || notStarted.length > 0) && (
         <Button
           size="lg"
           nativeButton={false}
-          render={<Link href={`/assessments/${runId}/plan`}>See your FAIRification plan</Link>}
+          render={<Link href={`/assessments/${runId}/plan`}>See your plan</Link>}
         />
       )}
+
+      {adapterId === "fair-v0" && <HarmonizationSuggestionCard />}
 
       {needsAttention.length > 0 && (
         <div className="space-y-4">
           <h2 className="font-heading text-xl font-semibold">Needs attention</h2>
           {needsAttention.map((finding) => (
+            <FindingCard
+              key={finding.indicator_id}
+              runId={runId}
+              finding={finding}
+              regenerating={regenerating === finding.indicator_id}
+              onRegenerate={() => handleRegenerate(finding.indicator_id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {notStarted.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="font-heading text-xl font-semibold">Not started yet</h2>
+          <p className="text-sm text-muted-foreground">
+            These haven&apos;t been counted against your score -- being early here is normal, not a failure.
+          </p>
+          {notStarted.map((finding) => (
             <FindingCard
               key={finding.indicator_id}
               runId={runId}
@@ -178,6 +221,31 @@ export default function ReportPage() {
   );
 }
 
+// Issue #16: offered here, on the finished report -- not as an upfront
+// choice when someone starts a new assessment -- per the project owner's
+// explicit call to keep the common, single-dataset path exactly as simple
+// as it already is. Also reachable from the "Which tool fits?" page
+// (components/navigator.tsx), per the same decision.
+function HarmonizationSuggestionCard() {
+  return (
+    <Card className="border-dashed">
+      <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+        <div className="space-y-1">
+          <p className="font-heading text-base font-semibold">Also coordinating data across multiple sites?</p>
+          <p className="text-sm text-muted-foreground">
+            Check how they fit together with a short, separate 6-question readiness check.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href="/assessments/new?adapter=harmonization-v0">Check how they fit together</Link>}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
 function FindingCard({
   runId,
   finding,
@@ -210,7 +278,11 @@ function FindingCard({
               className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
             >
               <ChevronDown className={`size-4 transition-transform ${open ? "rotate-180" : ""}`} />
-              {open ? "Hide the steps" : `See ${steps.length} step${steps.length === 1 ? "" : "s"} to fix this`}
+              {open
+                ? "Hide the steps"
+                : finding.severity === "not_started"
+                  ? `See ${steps.length} step${steps.length === 1 ? "" : "s"} to get started`
+                  : `See ${steps.length} step${steps.length === 1 ? "" : "s"} to fix this`}
             </CollapsibleTrigger>
             <CollapsibleContent>
               <ol className="mt-3 space-y-2.5 border-l-2 border-border pl-4">

@@ -29,6 +29,12 @@ class FakeAdapter:
             priority_weight=priority_weight_for(indicator.priority),
         )
 
+    def build_plan(self, *, findings, indicators_by_id, subject_label):
+        # Not exercised by this test -- present only so FakeAdapter stays a
+        # structurally complete stand-in for app.engine.ports.Adapter, which
+        # gained build_plan alongside issue #16's engine/adapter boundary fix.
+        raise NotImplementedError
+
 
 def _make_indicator(priority: str) -> Indicator:
     return Indicator(

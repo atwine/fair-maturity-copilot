@@ -180,6 +180,10 @@ ROADMAP.md              — what's built, what's next, what's tracked-but-parked
 CHANGELOG.md            — dated record of what shipped
 ```
 
+## Citation
+
+If you use this tool in published research, please cite it. See [`CITATION.cff`](CITATION.cff) for the preferred citation format (GitHub also surfaces this as a "Cite this repository" button on the repo page).
+
 ## License
 
 [MIT](LICENSE) — the repo is public. Built by [ACE](https://ace.ac.ug) (Africa Center of Excellence in Bioinformatics & Data Science, Kampala, Uganda).

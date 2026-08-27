@@ -592,3 +592,19 @@ The mentor scoped in `docs/DECISIONS.md` v19 was implemented in two parts, both 
 **This work is on `feature/readme-llm-cost-comparison`, not yet merged into `development`** — pending self-review and the user's go-ahead to push, same as every other change this session.
 
 **Open questions carried forward:** unchanged from the entry above.
+
+---
+
+## 2026-08-26 — Issue #15: the mentor's confirmed-fix action moved to a real tool call
+
+**Checked the blocking assumption before writing any code, rather than trust it or ignore it.** `mentor.py`'s own docstring said this was avoided because self-hosted vLLM isn't guaranteed to have tool-calling enabled. Sent a real tool-calling request directly to ACE's live vLLM endpoint and separately to the OpenRouter fallback model (`meta-llama/llama-3.3-70b-instruct`) — both returned correct, structured tool calls with the exact right arguments, not free text. That resolved the one thing that could have made this issue a dead end.
+
+**What changed:** `mentor.py` no longer regex-matches `UPDATE_ANSWER:`/`NOTE:` out of the model's reply. A real `confirm_indicator_fix` tool is declared and passed with `tool_choice="auto"`; the model either writes ordinary text (plain conversation) or calls the tool (confirming a fix). The one real design decision: the tool's own arguments include a `reply_to_user` field carrying the model's conversational reply, rather than expecting separate free text alongside the call — confirmed directly in both live checks that providers stop writing `content` the moment they call a tool, so this was the only way to keep this at one LLM call per turn (a second, textbook "send the tool result back, get a follow-up reply" round trip would have doubled mentor latency on every confirmed fix, which the issue explicitly said not to do). `llm_client.py` gained `generate_chat_with_tools()` with its own smaller empty-reply retry (a tool call with no `content` is normal here, not a failure, so it can't reuse `_complete()`'s retry logic as-is). `mentor_system.jinja` rewritten to describe the tool; `MENTOR_PROMPT_VERSION` → `fair-mentor-v4`.
+
+**Tests:** `test_mentor.py` rewritten — 9 old marker-line-regex tests became 8 tool-call-parsing tests (one old case, a conversational reply mentioning "update answer" mid-sentence, is now structurally impossible to misfire on, so it wasn't carried forward; new cases cover malformed/non-JSON tool arguments instead). Full suite: 60/60, including all 7 `test_mentor_live.py` tests against the real vLLM endpoint — `test_confirming_a_fix_in_chat_updates_the_real_answer_and_rescores` is the one that actually proves the new tool-calling path reaches all the way through to the real answer-update/rescore machinery, live, not just that the parser unit tests pass in isolation.
+
+**Deliberately not done:** the plan's `GOAL:`/`STEP:`/`ADDRESSES:` parsing and the remediation writer's `SUMMARY:`/`STEPS:` parsing use the same marker-line pattern and could get the same treatment — issue #15 explicitly scoped this to the mentor only, as a separate follow-up if this one went cleanly (it did).
+
+**This work is on `feature/mentor-tool-calling`, not yet merged into `development`** — pending self-review and the user's go-ahead to push.
+
+**Open questions carried forward:** unchanged from the entry above, plus: whether to pick up the plan/remediation parsing conversions as follow-up issues now that this one's proven the approach works against real infrastructure.

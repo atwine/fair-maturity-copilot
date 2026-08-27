@@ -1,42 +1,72 @@
 """The mentor conversation engine (Checkpoint 9). Standard-agnostic: an
 adapter supplies the system prompt (grounding + tone); this module owns how
-a turn actually runs and how a confirmed-fix line in the model's reply gets
-parsed out and turned into a real action.
+a turn actually runs and how a confirmed fix gets turned into a real action.
 
-Deliberately NOT built on the OpenAI-compatible "tools"/function-calling API
--- a self-hosted vLLM deployment isn't guaranteed to be launched with tool-
-call support enabled for a given model, and this codebase already has a
-proven, simpler pattern for exactly this kind of structured LLM output: a
-defensively-parsed marker line (see plan.py's GOAL:/STEP:/ADDRESSES: and
-parse-remediation.ts's SUMMARY:/STEPS:). Reusing that pattern here keeps the
-mentor's one real capability -- confirming a fix live in chat re-scores the
-assessment via the existing answer-update path -- reliable without a new,
-unverified infra dependency.
-"""
+Built on the OpenAI-compatible "tools"/function-calling API (issue #15) --
+this used to be a defensively-parsed marker line instead (like plan.py's
+GOAL:/STEP:/ADDRESSES: and parse-remediation.ts's SUMMARY:/STEPS: still are),
+deliberately avoided at the time because a self-hosted vLLM deployment isn't
+guaranteed to be launched with tool-call support enabled for a given model.
+That concern was real but no longer speculative: both this project's actual
+vLLM endpoint and its OpenRouter fallback were confirmed live to return
+correct structured tool calls before this switch was made (see
+docs/DECISIONS.md). The marker-line approach had already broken twice in
+production use (see git history on this file) from small formatting drift --
+a real model-shaped a note onto the action line with an extra "|" once, and
+could in principle drift in some other way again; a declared tool's argument
+shape is enforced by the provider, not hoped for from a regex."""
 
-import re
+import json
 
-from app.engine.llm_client import generate_chat
+from app.engine.llm_client import generate_chat_with_tools
 from app.engine.models import MentorMessage
 
-# Line-anchored, not a bare substring search -- a bare `"UPDATE_ANSWER:" in
-# text` could misfire if the model's own conversational reply happened to
-# echo that phrase (the exact class of bug parse-remediation.ts hit with
-# "STEPS:", see docs/HANDOFF.md's 2026-08-25 report-guided-remediation entry).
-# Format is `UPDATE_ANSWER: <indicator_id>|<value>` (issue #9) -- a mentor
-# conversation is now scoped to a whole plan step, which can bundle several
-# indicators, so a confirmed fix has to say which one it resolved. The id
-# itself (e.g. "fair.f1-identifier") is dot/hyphen/alnum; matches the ids
-# indicators.yaml actually uses. The trailing `(?:\|(.*))?` tolerates a real
-# model deviation caught live: instead of a separate NOTE: line, vLLM
-# sometimes tacks the note onto the same line with one more `|` --
-# `UPDATE_ANSWER: fair.r1-1-license|yes|Added a CC-BY license`. Without this
-# the whole line simply failed to match and the raw marker leaked straight
-# into what the user sees -- captured here as a fallback note instead.
-_ACTION_LINE = re.compile(
-    r"^\s*UPDATE_ANSWER:\s*([\w.\-]+)\|(yes|partial|no)(?:\|(.*))?\s*$", re.IGNORECASE | re.MULTILINE
-)
-_NOTE_LINE = re.compile(r"^\s*NOTE:\s*(.+)$", re.IGNORECASE | re.MULTILINE)
+# The model's whole conversational reply is carried as this tool's own
+# reply_to_user argument, not as separate free-text content -- most
+# providers stop writing plain content the moment they decide to call a
+# tool, so asking for both in the same turn (one call, not a multi-step
+# tool-result round trip) means the "thing to say back" has to live inside
+# the structured call itself when a fix is being confirmed.
+_CONFIRM_FIX_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "confirm_indicator_fix",
+        "description": (
+            "Call this only when the person's latest message clearly describes "
+            "having already completed a real fix for one of this step's "
+            "indicators -- not for general conversation, questions, or something "
+            "they're still planning to do. Never call this if you are unsure "
+            "which indicator they mean."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "indicator_id": {
+                    "type": "string",
+                    "description": "The exact id of the indicator being confirmed, from the '(id: ...)' tag given for it in the system prompt.",
+                },
+                "new_value": {
+                    "type": "string",
+                    "enum": ["yes", "partial", "no"],
+                    "description": "How completely this indicator is now satisfied: 'yes' if fully resolved, 'partial' if genuinely improved but incomplete.",
+                },
+                "note": {
+                    "type": "string",
+                    "description": "A short, plain paraphrase (under 15 words) of what the person said they did, for the record.",
+                },
+                "reply_to_user": {
+                    "type": "string",
+                    "description": (
+                        "Your normal, warm conversational reply acknowledging this -- exactly what "
+                        "you would otherwise have written directly. This is the only thing the person "
+                        "will actually see, so it must read like a real reply, not a status message."
+                    ),
+                },
+            },
+            "required": ["indicator_id", "new_value", "reply_to_user"],
+        },
+    },
+}
 
 
 class MentorAction:
@@ -46,41 +76,31 @@ class MentorAction:
         self.note = note
 
 
-def _extract_action(text: str, valid_indicator_ids: set[str] | None = None) -> tuple[str, MentorAction | None]:
-    """Splits the model's raw reply into (display_text, action). The
-    UPDATE_ANSWER:/NOTE: lines are a signal to the engine, not part of the
-    conversation -- stripped from what's actually shown to the user.
-    valid_indicator_ids, when given, silently drops a hallucinated or
-    mistyped id rather than trying to apply an update to something that
-    isn't part of this step -- same defensive spirit as plan.py's ADDRESSES:
-    parsing."""
-    match = _ACTION_LINE.search(text)
-    if not match:
-        return text.strip(), None
+def _parse_tool_call(tool_call, valid_indicator_ids: set[str] | None) -> tuple[str, MentorAction | None]:
+    """Turns one confirm_indicator_fix call into (display_text, action).
+    display_text always comes from reply_to_user when it's present, even if
+    the action itself gets dropped below -- a hallucinated or malformed
+    indicator_id/new_value shouldn't also hide a perfectly good reply, same
+    defensive spirit as plan.py's ADDRESSES: parsing dropping only the
+    invalid id, not the whole step."""
+    try:
+        args = json.loads(tool_call.function.arguments)
+    except (TypeError, ValueError):
+        return "", None
+    if not isinstance(args, dict):
+        return "", None
 
-    # The marker line is stripped from display_text on every path below,
-    # matched or not -- a hallucinated/mistyped indicator id must not leave
-    # the raw UPDATE_ANSWER:/NOTE: lines visible to the user just because
-    # the *action* itself gets dropped. (An earlier version of this function
-    # only stripped it on the success path, which was the same "raw marker
-    # leaks into the chat" bug this whole regex's design is meant to avoid,
-    # just triggered by an unknown id instead of a note-format deviation.)
-    display_text = text[: match.start()].strip()
-
-    indicator_id = match.group(1)
-    value = match.group(2).lower()  # already constrained to yes|partial|no by the regex itself
-    if valid_indicator_ids is not None and indicator_id not in valid_indicator_ids:
+    display_text = str(args.get("reply_to_user") or "").strip()
+    indicator_id = args.get("indicator_id")
+    value = args.get("new_value")
+    if (
+        not isinstance(indicator_id, str)
+        or value not in {"yes", "partial", "no"}
+        or (valid_indicator_ids is not None and indicator_id not in valid_indicator_ids)
+    ):
         return display_text, None
 
-    note_match = _NOTE_LINE.search(text)
-    inline_note = match.group(3)
-    if note_match:
-        note = note_match.group(1).strip()
-    elif inline_note:
-        note = inline_note.strip()
-    else:
-        note = ""
-    display_text = text[: match.start()].strip()
+    note = str(args.get("note") or "").strip()
     return display_text, MentorAction(indicator_id=indicator_id, value=value, note=note)
 
 
@@ -99,5 +119,11 @@ def run_mentor_turn(
         messages.append({"role": role, "content": m.content})
     messages.append({"role": "user", "content": user_text})
 
-    raw_reply = generate_chat(messages)
-    return _extract_action(raw_reply, valid_indicator_ids)
+    content, tool_calls = generate_chat_with_tools(messages, tools=[_CONFIRM_FIX_TOOL])
+    if tool_calls:
+        # This conversation can only usefully confirm one fix per turn (see
+        # docs/DECISIONS.md v22) -- if the model somehow returns more than
+        # one call, take the first and ignore the rest rather than guessing
+        # which one is "the" real answer.
+        return _parse_tool_call(tool_calls[0], valid_indicator_ids)
+    return content, None

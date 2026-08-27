@@ -1,0 +1,207 @@
+# The harmonization-v0 adapter's content library (issue #16). This is DATA,
+# not code — editable without touching adapter.py or anything in
+# app/engine/. Grounded in FAIRplus-DSM's real Level 2 indicators
+# (https://fairplus.github.io/Data-Maturity/docs/Levels/Level2/): a check
+# for whether MULTIPLE SITES in one initiative describe their data
+# consistently enough to combine and compare — a different question from
+# fair-v0's 12 questions, which only assess one dataset's own practices in
+# isolation. The Level 2 "Hosting Environment" indicators (real
+# infrastructure requirements) are deliberately out of scope here — see
+# docs/PLANS/issue-16-harmonization-plan.md and the tool's own /navigator
+# page, which points people there instead of this tool rebuilding it.
+#
+# scoring_rubric maps a raw answer value to a severity, same shape as
+# fair-v0's. The one addition: "not_started" maps to its own "not_started"
+# severity, not "major_gap" — a multi-site consortium that hasn't begun
+# harmonizing yet is not failing, it's early. app/engine/scoring.py
+# excludes this severity from the composite score entirely (HEAP-project
+# precedent — Zenodo 10.5281/zenodo.17342124 — marks not-yet-applicable
+# indicators "not applicable" rather than penalizing them).
+
+adapter:
+  id: harmonization-v0
+  name: "Multi-Site Harmonization Readiness"
+  version: "0.1.0"
+
+default_scoring_rubric: &default_rubric
+  # yes/no MUST be quoted — unquoted YAML 1.1 booleans (the "Norway
+  # problem") would silently turn these keys into Python True/False.
+  "yes": pass
+  partial: minor_gap
+  "no": major_gap
+  dont_know: unknown
+  not_started: not_started
+
+default_options: &default_options
+  - value: "yes"
+    label: "Yes, clearly true"
+  - value: partial
+    label: "Partially / inconsistently true"
+  - value: "no"
+    label: "No, not true"
+  - value: dont_know
+    label: "I don't know"
+  - value: not_started
+    label: "We haven't started this yet"
+
+indicators:
+  - id: harmonization.h1-field-names
+    external_code: "FAIRplus-DSM Level 2 (Metadata Representation)"
+    principle_group: "Consistent Naming"
+    title: "Same names, same meaning across sites"
+    definition: >
+      Every site describes the same real-world concept (e.g. an HIV test
+      result date) using the same field name and the same meaning, rather
+      than each site inventing its own name for the same thing.
+    plain_language_question: >
+      Do all sites call the same real-world thing by the same field name —
+      or does each site make up its own?
+    help_text: >
+      Two fields with different names can't be safely combined, even if a
+      person could tell they mean the same thing — a computer (or a
+      researcher working fast) can't. Two fields with the same name that
+      quietly mean different things are worse: they look combinable and
+      aren't.
+    example: >
+      Site A has a column called hiv_test_date. Site B calls the exact same
+      thing testdt. Site C calls it result_date but actually means
+      something slightly different. Until everyone agrees on one name
+      meaning one thing, you can't safely combine the data.
+    priority: essential
+    display_order: 1
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: harmonization.h2-tidy-data
+    external_code: "FAIRplus-DSM Level 2 (Content and Context)"
+    principle_group: "Consistent Naming"
+    title: "One column, one fact"
+    definition: >
+      Each column in a site's data holds exactly one piece of information
+      ("tidy data"), rather than quietly mixing two or more facts together
+      in a single field.
+    plain_language_question: >
+      Does each column in your data hold just one piece of information, or
+      does it secretly mix two things together?
+    help_text: >
+      A field that mixes two facts (like when something happened and what
+      the result was) can look fine at one site and still be impossible to
+      combine cleanly with another site's data, because there's no reliable
+      way to pull the two facts back apart.
+    example: >
+      A column called temperature_screening is actually hiding two facts at
+      once — when (the screening visit) and what (the temperature reading).
+      Splitting it into two columns — one for "visit," one for
+      "temperature" — makes the data usable across sites; leaving it mixed
+      doesn't.
+    priority: important
+    display_order: 2
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: harmonization.h3-data-dictionary
+    external_code: "FAIRplus-DSM Level 2 (Metadata Representation)"
+    principle_group: "Shared Vocabulary"
+    title: "One shared dictionary of terms"
+    definition: >
+      One shared data dictionary, agreed by the whole initiative, defines
+      exactly what each field and code means — rather than every site
+      keeping its own private definitions.
+    plain_language_question: >
+      Is there one shared list, agreed by everyone, of exactly what each
+      category/code means — or does each site keep its own?
+    help_text: >
+      A shared data dictionary is what turns "we agreed on a field name"
+      (the previous question) into something a person or a script can
+      actually check against — it's the difference between an informal
+      understanding and a real, referenceable standard everyone can point
+      to.
+    example: >
+      For "sex," one shared list says the only allowed values are M, F, U
+      and what each means. Without that, one site might write "Male,"
+      another "M," another "1" — and a computer can't tell they're the same
+      thing.
+    priority: essential
+    display_order: 3
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: harmonization.h4-linkage-key
+    external_code: "FAIRplus-DSM Level 2 (Content and Context)"
+    principle_group: "Linking & Mapping"
+    title: "A way to link records across sites, without exposing who anyone is"
+    definition: >
+      A shared, non-identifying reference key lets a record from one site
+      be linked to the same person's record at another site for analysis,
+      without any site ever seeing another site's identifying information.
+    plain_language_question: >
+      Can a record from one site be matched to the same person's record at
+      another site, using a shared code — without using anything that
+      identifies the person, like a name?
+    help_text: >
+      Without a shared linkage key, there's no way to tell that a record at
+      one site and a record at another belong to the same person — which
+      makes real cross-site analysis impossible. The key has to avoid
+      exposing anything identifying, or it creates a privacy problem while
+      solving a data problem.
+    example: >
+      Every site assigns the same participant a shared ID code (not their
+      name, not their national ID) so their records can be linked for
+      analysis, without any site ever seeing another site's private patient
+      list.
+    priority: essential
+    display_order: 4
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: harmonization.h5-categorical-values
+    external_code: "FAIRplus-DSM Level 2 (Metadata Representation)"
+    principle_group: "Shared Vocabulary"
+    title: "Categories match across sites"
+    definition: >
+      Categorical values (test results, sex, facility/region codes, and
+      similar) are recorded using the same standardized set of codes
+      everywhere, rather than free text or a different coding scheme per
+      site.
+    plain_language_question: >
+      Are things like test results, sex, or facility codes recorded the
+      same way everywhere — or does each site use its own labels or free
+      text?
+    help_text: >
+      A shared data dictionary (the earlier question) defines what the
+      categories should be; this checks whether sites actually record data
+      using those categories day to day, rather than defaulting to
+      free-text entry that looks fine locally but can't be compared.
+    example: >
+      One site has a dropdown with fixed choices for "test result." Another
+      site lets people just type anything they want. The second one can't
+      be reliably compared to the first.
+    priority: important
+    display_order: 5
+    options: *default_options
+    scoring_rubric: *default_rubric
+
+  - id: harmonization.h6-mapping-plan
+    external_code: "FAIRplus-DSM Level 2 (Content and Context)"
+    principle_group: "Linking & Mapping"
+    title: "A written plan for getting everyone to match"
+    definition: >
+      A documented mapping shows exactly how each site's own local fields
+      correspond to the initiative's agreed shared structure, so the
+      mapping can be checked rather than just assumed.
+    plain_language_question: >
+      Is there a plain document (even a simple one) showing how each site's
+      own way of recording things maps onto the shared, agreed structure?
+    help_text: >
+      Agreeing on shared names and a shared dictionary (the earlier
+      questions) only helps if there's a written record of how each site's
+      actual, existing fields map onto that shared structure — without it,
+      nobody can verify the mapping is actually being followed correctly.
+    example: >
+      A one-page table: "Site A's testdt = the shared hiv_test_date field.
+      Site B's result_date = the same." Without this written down
+      somewhere, nobody can check the mapping is actually being followed.
+    priority: important
+    display_order: 6
+    options: *default_options
+    scoring_rubric: *default_rubric

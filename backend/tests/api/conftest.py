@@ -8,12 +8,13 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.adapters.fair import content as fair_content
+from app.adapters.harmonization import content as harmonization_content
 from app.db import get_session
 from app.main import app
 
 # Kept in sync with scripts/seed_indicators.py's _CONTENT_MODULES -- every
 # adapter's content needs to be present for any API test to exercise it.
-_CONTENT_MODULES = [fair_content]
+_CONTENT_MODULES = [fair_content, harmonization_content]
 
 
 @pytest.fixture()

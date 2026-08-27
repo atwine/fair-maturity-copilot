@@ -14,7 +14,7 @@ class QuestionOut(BaseModel):
     help_text: str
     example: str
     priority: str
-    principle_group: str  # "Findable" | "Accessible" | "Interoperable" | "Reusable"
+    principle_group: str  # adapter-defined free text -- opaque to the engine
     display_order: int
     options: list[dict]
 
@@ -26,7 +26,9 @@ class CreateAssessmentRequest(BaseModel):
 
 
 class AnswerIn(BaseModel):
-    value: str  # "yes" | "partial" | "no" | "dont_know"
+    value: str  # adapter-defined, validated against the question's own options
+    # (routes_answers.py) -- "yes" | "partial" | "no" | "dont_know" for every
+    # adapter today, plus "not_started" for harmonization-v0 (issue #16)
     label: str
     note: str | None = None
 
@@ -54,7 +56,7 @@ class FindingOut(BaseModel):
     indicator_id: str
     title: str
     severity: str
-    principle_group: str  # "Findable" | "Accessible" | "Interoperable" | "Reusable"
+    principle_group: str  # adapter-defined free text -- opaque to the engine
     remediation_text: str | None
 
 
@@ -69,7 +71,7 @@ class ReportOut(BaseModel):
 class PlanIndicatorRefOut(BaseModel):
     indicator_id: str
     title: str
-    principle_group: str  # "Findable" | "Accessible" | "Interoperable" | "Reusable"
+    principle_group: str  # adapter-defined free text -- opaque to the engine
 
 
 class PlanStepOut(BaseModel):

@@ -1,0 +1,52 @@
+You are a data coordinator helping a multi-site initiative at {{ subject_label }}
+turn a list of data-harmonization gaps into an ordered plan of action. They
+have already seen which specific things need attention — your job is to
+sequence the work, not re-explain each one.
+
+OPEN ITEMS (already known to this person; do not restate what each one is)
+{% for finding in findings %}
+- id: {{ finding.indicator_id }} | {{ finding.title }} | current state: {{ finding.severity_label }}
+{% endfor %}
+
+NATURAL ORDER (a guide, not a rigid template — skip any category with no
+open item in it, and never invent a step for something not listed above)
+1. Naming — agreeing what each field is called and what it means, and
+   keeping each field to one fact
+2. Shared vocabulary — a common data dictionary and standardized category
+   values every site actually uses
+3. Linking and mapping — a way to match records across sites without
+   exposing who anyone is, and a written record of how each site's own
+   fields map onto the shared structure
+
+An item marked "not started" still gets a real step — a genuinely useful
+first move toward beginning it, not a placeholder. Frame that step's DETAIL
+as a starting point, not a finished fix.
+
+YOUR TASK
+Group the open items above into 2-6 ordered steps following that natural
+order (merge multiple items into one step when they belong to the same
+category; skip categories with nothing open). Every item listed above must
+be addressed by exactly one step — do not drop any, do not invent items not
+listed.
+
+OUTPUT FORMAT — follow this exactly, no other text before or after:
+
+GOAL: <one plain sentence: what doing all of this achieves and why it
+matters for {{ subject_label }}>
+STEP: <short imperative title, e.g. "Agree on one shared field name per concept">
+ADDRESSES: <comma-separated indicator ids from the list above that this step covers>
+DETAIL: <1-2 plain sentences on what to actually do, grounded in the items this
+step addresses>
+STEP: <next step>
+ADDRESSES: <ids>
+DETAIL: <...>
+
+RULES
+- Never use an acronym or technical term without explaining it in plain
+  words the moment you first use it. Assume zero prior data-harmonization
+  knowledge.
+- Do not mention "FAIR-DSM," "data maturity levels," indicator codes, or
+  RDA/FAIRplus jargon anywhere.
+- ADDRESSES must only ever contain ids copied exactly from the OPEN ITEMS
+  list above — never invent, abbreviate, or guess an id.
+- Plain language, second person ("you"). GOAL and each DETAIL: max 40 words.

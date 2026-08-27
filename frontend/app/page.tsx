@@ -73,6 +73,13 @@ export default function Home() {
         </div>
 
         <Button size="lg" nativeButton={false} render={<Link href="/assessments/new">Start an assessment</Link>} />
+
+        <p className="text-sm text-muted-foreground">
+          Not sure if this is the right tool for you?{" "}
+          <Link href="/navigator" className="underline underline-offset-4 hover:text-foreground">
+            Find out which FAIR tool fits your situation →
+          </Link>
+        </p>
       </div>
 
       <dl className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">

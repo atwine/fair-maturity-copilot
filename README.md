@@ -19,13 +19,13 @@ A guided, plain-language FAIR data-maturity assessment tool for research organiz
 
 ## Status
 
-**In progress, feature-complete for v0 — merged to `main`. Backend (engine, FAIR adapter content, remediation prompt, FAIRification plan synthesis, REST API, over-the-shoulder mentor) and frontend (assessment wizard, review, report, plan, mentor chat, about, and navigator pages) are both built and tested, including live end-to-end runs in a real browser against vLLM. Not yet deployed anywhere or piloted with a real ACE user — see [`ROADMAP.md`](ROADMAP.md) for what's left (an eval harness, deployment, the actual pilot) and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
+**In progress, feature-complete for v0 — merged to `main`. Backend (engine, two adapters, remediation prompts, FAIRification plan synthesis, REST API, over-the-shoulder mentor, eval harness) and frontend (assessment wizard, review, report, plan, mentor chat, about, and navigator pages) are both built and tested, including live end-to-end runs in a real browser against vLLM. The engine/adapter boundary has been proven with a real second adapter (`harmonization-v0`), not just the empty test double it was originally validated against. Not yet deployed anywhere or piloted with a real ACE user — see [`ROADMAP.md`](ROADMAP.md) for what's left (deployment, the actual pilot) and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
 
 ## The problem
 
 The Research Data Alliance's FAIR Data Maturity Model defines 41 indicators for assessing how Findable, Accessible, Interoperable, and Reusable a dataset or research practice is. The existing automated checkers — [F-UJI](https://www.f-uji.net) and [FAIR Checker](https://fair-checker.france-bioinformatique.fr) — cover the machine-readable half of that (can a crawler resolve your metadata), and only ever talk to a computer, never a person; their output is written for data engineers, not for a research group lead trying to figure out what to actually fix. The two richer resources in this space — the [FAIR Cookbook](https://faircookbook.elixir-europe.org) (60+ detailed recipes) and [FAIR-DSM](https://fairplus.github.io/Data-Maturity/) (a 5-level enterprise maturity roadmap) — assume the reader already knows which part applies to them, or has real institutional infrastructure to build on.
 
-This tool is a guided version, for the gap none of those fill: walk a non-technical stakeholder through a 12-indicator subset of the RDA model in plain language, score it, use an LLM to turn every weak indicator into a specific actionable next step, and synthesize the whole set of gaps into one ordered FAIRification plan. See [`docs/WHY-THIS-TOOL.md`](docs/WHY-THIS-TOOL.md) (also live in-app at `/about`) for the full writeup of how this fits alongside the rest of the FAIR-tooling landscape.
+This tool is a guided version, for the gap none of those fill: walk a non-technical stakeholder through a 12-indicator subset of the RDA model in plain language, score it, use an LLM to turn every weak indicator into a specific actionable next step, and synthesize the whole set of gaps into one ordered FAIRification plan. A second adapter (`harmonization-v0`, issue #16) answers a different question for a different audience: whether multiple sites in one initiative describe their data consistently enough to combine and compare — 6 plain-language questions grounded in FAIRplus-DSM's Level 2 indicators, with a non-penalized "we haven't started this yet" answer for initiatives at an early stage. See [`docs/WHY-THIS-TOOL.md`](docs/WHY-THIS-TOOL.md) (also live in-app at `/about`) for the full writeup of how this fits alongside the rest of the FAIR-tooling landscape.
 
 For a single self-contained document covering the project's origin story, value proposition, current state, and open questions — written for brainstorming with a fresh collaborator (human or AI) rather than for implementation — see [`docs/BRAINSTORMING-BRIEF.md`](docs/BRAINSTORMING-BRIEF.md).
 
@@ -37,7 +37,7 @@ Built as a reusable **engine + adapter** pattern, not a one-off script:
 intake (structured findings) → scoring → LLM remediation writer → plain-language report
 ```
 
-The FAIR indicator set and scoring rubric live in their own adapter module (`backend/app/adapters/fair/`). Nothing in `backend/app/engine/` may reference "FAIR" by name — that boundary is what lets a second adapter, applying the same engine to OHDSI's OMOP CDM Data Quality Dashboard output, plug in later without a rewrite. See [`ROADMAP.md`](ROADMAP.md).
+Each adapter owns its own indicator content, prompt wording, and plan ordering; the engine owns everything standard-agnostic (scoring, remediation grounding, plan parsing, mentor loop). Two adapters exist today: `fair-v0` (12 single-dataset FAIR questions) and `harmonization-v0` (6 multi-site consistency questions). Nothing in `backend/app/engine/` may reference any adapter by name — that boundary has been proven with a real second adapter, not just the empty test double it was originally validated against. A third adapter (OMOP CDM Data Quality Dashboard) is parked in [`ROADMAP.md`](ROADMAP.md) — the boundary is ready for it whenever the need arrives.
 
 ## Why this exists
 
@@ -88,10 +88,10 @@ python -m venv .venv
 ./.venv/Scripts/python.exe -m pip install -e ".[dev]"   # Windows; drop the .exe path prefix on macOS/Linux
 cp .env.example .env   # then fill in DATABASE_URL and an LLM provider block -- see "LLM provider" above
 ./.venv/Scripts/python.exe -m pytest tests/ -v
-./.venv/Scripts/python.exe scripts/seed_indicators.py   # loads the 12 FAIR indicators into the DB
+./.venv/Scripts/python.exe scripts/seed_indicators.py   # loads all adapters' indicators into the DB (12 FAIR + 6 harmonization)
 ```
 
-Most tests (`tests/engine/`, `tests/adapters/fair/`) need no database or LLM connection — they're the fastest way to confirm the setup works. `tests/api/` needs no external DB either (each test gets its own throwaway SQLite file), but `tests/api/test_report_live.py` does call the real LLM configured in `.env`. `seed_indicators.py` needs a real `DATABASE_URL` (Postgres via Neon, or a local SQLite URL like `sqlite:///./dev.db` for quick local testing) — run it before starting the API, or report generation will fail with a clear error telling you to.
+Most tests (`tests/engine/`, `tests/adapters/`) need no database or LLM connection — they're the fastest way to confirm the setup works. `tests/api/` needs no external DB either (each test gets its own throwaway SQLite file), but `tests/api/test_report_live.py`, `test_plan_live.py`, `test_mentor_live.py`, and `test_harmonization_live.py` do call the real LLM configured in `.env`. `seed_indicators.py` needs a real `DATABASE_URL` (Postgres via Neon, or a local SQLite URL like `sqlite:///./dev.db` for quick local testing) — run it before starting the API, or report generation will fail with a clear error telling you to.
 
 ```bash
 ./.venv/Scripts/python.exe -m uvicorn app.main:app --reload --reload-dir app   # http://localhost:8000/docs for interactive API docs
@@ -103,7 +103,7 @@ Most tests (`tests/engine/`, `tests/adapters/fair/`) need no database or LLM con
 
 | Method | Path | What it does |
 |---|---|---|
-| GET | `/adapters/{adapter_id}/questions` | The ordered question set for an adapter (currently just `fair-v0`) |
+| GET | `/adapters/{adapter_id}/questions` | The ordered question set for an adapter (`fair-v0` or `harmonization-v0`) |
 | POST | `/assessments` | Start a new assessment run |
 | GET | `/assessments/{id}` | Run status + which indicators are answered so far |
 | PUT | `/assessments/{id}/answers/{indicator_id}` | Submit or update one answer |
@@ -149,22 +149,27 @@ feature/<name>  →  development  →  staging  →  main
 ```
 backend/
   app/
-    engine/            — standard-agnostic core (models, scoring, remediation, LLM client)
-    adapters/registry.py — maps adapter_id -> concrete adapter; the only file allowed to know FAIR exists
-    adapters/fair/      — FAIR-specific indicators.yaml, adapter, scoring rubric, remediation + plan + mentor prompts
+    engine/            — standard-agnostic core (models, scoring, remediation, plan parsing, mentor loop, LLM client, content loader)
+    adapters/registry.py — maps adapter_id -> concrete adapter; the one place that knows which adapters exist
+    adapters/fair/      — FAIR-specific indicators.yaml, adapter, remediation + plan + mentor prompts
+    adapters/harmonization/ — multi-site consistency check (issue #16): 6 indicators, own prompts, "not_started" severity
     api/                — REST routes + schemas (see "API surface" above)
   fixtures/             — synthetic demo dataset profiles (no real ACE/TASO data touches an LLM)
-  scripts/               — seed_indicators.py, run_demo_assessment.py
-  tests/                 — engine boundary, FAIR adapter, remediation/plan grounding, fixture checks
+  scripts/               — seed_indicators.py (loads all adapters), run_demo_assessment.py, run_eval.py
+  eval/                  — golden_set.yaml: LLM-judge test cases for remediation + plan quality (Checkpoint 6)
+  tests/                 — engine boundary, scoring, plan parsing, mentor parser; both adapters' content + flow tests; live API tests against real vLLM
   .env.example          — required env vars, including both LLM provider presets
 frontend/
   app/                   — new, question/[indicatorId] (also used to revisit a finding), review, report, plan, mentor/[stepId], about, navigator
   lib/                   — api-client.ts + types.ts, mirroring the backend's REST contract
+  components/            — fair-spectrum, navigator, loading-state, ui/ (shadcn)
 docs/
   PLANNING_PROMPT.md    — the Plan Mode prompt that produced the v0 build plan
   DECISIONS.md          — why this project, and not the nine other ideas we scoped first
   WHY-THIS-TOOL.md      — plain-language explainer: who this is for, and how it fits the wider FAIR-tooling landscape
+  PLANS/                — approved implementation plans for individual issues (e.g. issue-16-harmonization-plan.md)
   demo_reports/          — generated output from scripts/run_demo_assessment.py — what the tool actually produces
+  eval_reports/          — generated output from scripts/run_eval.py — LLM-judge quality checks
   fairification-framework-Africa/ — reference material this tool's design was checked against (see DECISIONS.md v16-v18)
   background/           — the earlier idea-scoping reports (v1-v3)
 devlog/

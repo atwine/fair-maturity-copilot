@@ -58,7 +58,7 @@ export default function PlanPage() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-10">
       <div className="space-y-2">
-        <p className="text-sm font-medium text-muted-foreground">Your FAIRification plan</p>
+        <p className="text-sm font-medium text-muted-foreground">Your plan</p>
         <h1 className="font-heading text-3xl font-semibold text-balance">{plan.goal}</h1>
       </div>
 

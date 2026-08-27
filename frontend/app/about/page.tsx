@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 
 const LETTERS = [
@@ -136,6 +137,13 @@ export default function AboutPage() {
             </Card>
           ))}
         </div>
+        <p className="text-base leading-relaxed">
+          Not sure which of these applies to you?{" "}
+          <Link href="/navigator" className="underline underline-offset-4 hover:text-foreground">
+            Answer a few questions
+          </Link>{" "}
+          and we&rsquo;ll point you at the right one.
+        </p>
       </section>
 
       <section className="space-y-3">

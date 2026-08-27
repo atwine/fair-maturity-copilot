@@ -19,7 +19,7 @@ A guided, plain-language FAIR data-maturity assessment tool for research organiz
 
 ## Status
 
-**In progress, feature-complete for v0 — merged to `main`. Backend (engine, FAIR adapter content, remediation prompt, FAIRification plan synthesis, REST API, over-the-shoulder mentor) and frontend (assessment wizard, review, report, plan, mentor chat, and about pages) are both built and tested, including live end-to-end runs in a real browser against vLLM. Not yet deployed anywhere or piloted with a real ACE user — see [`ROADMAP.md`](ROADMAP.md) for what's left (an eval harness, deployment, the actual pilot) and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
+**In progress, feature-complete for v0 — merged to `main`. Backend (engine, FAIR adapter content, remediation prompt, FAIRification plan synthesis, REST API, over-the-shoulder mentor) and frontend (assessment wizard, review, report, plan, mentor chat, about, and navigator pages) are both built and tested, including live end-to-end runs in a real browser against vLLM. Not yet deployed anywhere or piloted with a real ACE user — see [`ROADMAP.md`](ROADMAP.md) for what's left (an eval harness, deployment, the actual pilot) and [`devlog/HANDOFF.md`](devlog/HANDOFF.md) for the running session log.
 
 ## The problem
 
@@ -156,7 +156,7 @@ backend/
   tests/                 — engine boundary, FAIR adapter, remediation/plan grounding, fixture checks
   .env.example          — required env vars, including both LLM provider presets
 frontend/
-  app/                   — new, question/[indicatorId] (also used to revisit a finding), review, report, plan, mentor/[stepId], about
+  app/                   — new, question/[indicatorId] (also used to revisit a finding), review, report, plan, mentor/[stepId], about, navigator
   lib/                   — api-client.ts + types.ts, mirroring the backend's REST contract
 docs/
   PLANNING_PROMPT.md    — the Plan Mode prompt that produced the v0 build plan

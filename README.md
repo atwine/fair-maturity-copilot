@@ -94,8 +94,10 @@ cp .env.example .env   # then fill in DATABASE_URL and an LLM provider block -- 
 Most tests (`tests/engine/`, `tests/adapters/fair/`) need no database or LLM connection — they're the fastest way to confirm the setup works. `tests/api/` needs no external DB either (each test gets its own throwaway SQLite file), but `tests/api/test_report_live.py` does call the real LLM configured in `.env`. `seed_indicators.py` needs a real `DATABASE_URL` (Postgres via Neon, or a local SQLite URL like `sqlite:///./dev.db` for quick local testing) — run it before starting the API, or report generation will fail with a clear error telling you to.
 
 ```bash
-./.venv/Scripts/python.exe -m uvicorn app.main:app --reload   # http://localhost:8000/docs for interactive API docs
+./.venv/Scripts/python.exe -m uvicorn app.main:app --reload --reload-dir app   # http://localhost:8000/docs for interactive API docs
 ```
+
+`--reload-dir app` matters more than it looks: without it, `--reload` watches everything under `backend/`, including `.venv` (8,000+ files that never change). On a cloud-synced working directory (OneDrive, Dropbox, etc.) that's not just wasted CPU — every one of those file checks can pay a sync-client tax. This cuts down *unnecessary* watching, but doesn't fully solve dev-server reload speed on a synced folder: `uvicorn --reload` itself can still hang mid-restart on Windows after a real code change (reproduced live: the reload log stops right after "Reloading…" with both the old and new process idling, no crash, no further output). If a reload seems stuck for more than a few seconds, don't wait it out — kill the process and start it fresh.
 
 ### API surface
 

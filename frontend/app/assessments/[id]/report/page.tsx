@@ -194,10 +194,10 @@ function FindingCard({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
         <div className="flex min-w-0 items-center gap-2">
           <PrincipleChip group={finding.principle_group} />
-          <CardTitle className="truncate font-heading text-lg">{finding.title}</CardTitle>
+          <CardTitle className="font-heading text-lg">{finding.title}</CardTitle>
         </div>
         <SeverityBadge severity={finding.severity} />
       </CardHeader>

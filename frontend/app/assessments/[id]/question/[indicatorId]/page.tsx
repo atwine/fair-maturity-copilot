@@ -177,7 +177,9 @@ function QuestionForm({
       )}
 
       <div className="space-y-3">
-        <h1 className="font-heading text-2xl font-semibold text-balance">{question.plain_language_question}</h1>
+        <h1 id="question-heading" className="font-heading text-2xl font-semibold text-balance">
+          {question.plain_language_question}
+        </h1>
         <div className="rounded-md border border-primary/20 bg-accent p-3 text-sm text-accent-foreground">
           <span className="font-semibold">For example: </span>
           {question.example}
@@ -194,7 +196,12 @@ function QuestionForm({
         )}
       </div>
 
-      <RadioGroup value={value} onValueChange={(v) => setValue(v as AnswerValue)} className="gap-3">
+      <RadioGroup
+        value={value}
+        onValueChange={(v) => setValue(v as AnswerValue)}
+        aria-labelledby="question-heading"
+        className="gap-3"
+      >
         {question.options.map((option) => (
           <Label
             key={option.value}

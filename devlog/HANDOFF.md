@@ -78,6 +78,68 @@ Running context for any agent (Claude, Devin, or a fresh session of either) pick
 1. PyYAML's "Norway problem" — unquoted `yes`/`no` in `indicators.yaml` were silently parsed as Python `True`/`False`, breaking every rubric lookup. Caught by running the tests, not by reading the code. Fixed by quoting them; comment left in the YAML explaining why.
 2. `seed_indicators.py` raised `DetachedInstanceError` reading `adapter.id` in a log message after the DB session that owned it had closed. Fixed by capturing the value before the session closes.
 3. (Self-review, after the above) `indicators.yaml`'s `&anchor`/`*alias` reuse meant every indicator sharing the default rubric/options pointed at the literal same Python object, not a copy — a latent shared-mutable-state bug if any future code customizes one indicator's rubric. Fixed with `copy.deepcopy` in `content.py`.
+
+---
+
+## 2026-08-27 — Issue #16 (Level 2 harmonization check): plan approved, PR 1 in progress
+
+**Why this entry exists:** the project owner asked explicitly, mid-session, to
+keep this log and the plan document current at every step — there's a real
+chance this work gets handed to Devin partway through if this session runs
+out of budget. Treat this entry as the thing to read first if that happens:
+it says exactly what's done, what's half-done, and what's next.
+
+**The plan:** full approved implementation plan is now committed in-repo at
+[`docs/PLANS/issue-16-harmonization-plan.md`](../docs/PLANS/issue-16-harmonization-plan.md)
+— read that first, it has the full context (why a second adapter, what's
+reused vs. new, the exact 5-PR sequence). This entry only tracks *progress*
+against that plan; the plan itself is the source of truth for *what* and
+*why*.
+
+**Status as of this entry: PR 1 (engine fixes) is in progress, not yet
+committed.** Working on branch `feature/engine-plan-boundary-fix` off
+`development` (created this session, not yet pushed anywhere). Nothing has
+been committed to git yet — all changes so far exist only as uncommitted
+edits in the working tree, if any are already applied by the time this is
+read. **If picking this up cold: run `git status` and `git diff` on this
+branch first** to see exactly what's actually landed vs. still just planned.
+
+**What PR 1 is, in one line:** fix `backend/app/api/routes_plan.py`'s direct
+import of `app.adapters.fair.plan` (a real bug — every run's walkthrough plan
+uses FAIR's own wording regardless of which adapter it belongs to, harmless
+today only because there's just one adapter), move a couple of genuinely
+adapter-agnostic pieces into `app/engine/` where they belong, and teach
+scoring/remediation about a new non-penalized `not_started` outcome — all
+with **zero visible behavior change** to today's check, proven by the full
+existing test suite passing unchanged plus new tests for the new behavior.
+Exact file list is in the plan doc's "PR 1" section.
+
+**What's next, in order, per the plan doc:** finish PR 1 → PR 2
+(`harmonization-v0` adapter content/backend) → PR 3 (frontend plumbing) → PR 4
+(the two entry points: report-page suggestion card + navigator rework) → one
+`development → staging → main` promotion pass with both required review
+passes. Do not skip either review pass. Do not push anything without the
+project owner's explicit go-ahead first, per standing convention.
+
+**Open/carried-forward items specific to this feature** (flagged during
+planning, not yet resolved — see the plan doc's "Risks" discussion in the
+design agent's notes, not reproduced in the committed plan doc itself):
+- `_SEVERITY_RANK`'s exact sort position for `not_started` (currently
+  planned as "just above pass") only affects display order, not scoring —
+  low-stakes, fine to leave as implemented unless it looks wrong live.
+- Whether this repo runs `mypy`/`pyright` in CI was flagged as worth
+  checking before PR 1, because `FakeAdapter` in `tests/engine/test_boundary.py`
+  won't implement the new `build_plan` Protocol method — harmless at runtime
+  (Python Protocols are structural/unenforced without a type checker) but
+  worth a stub method if static type-checking turns out to be wired up.
+  **Not yet checked as of this entry** — no `.github/workflows/` found in a
+  first pass, so likely not CI-enforced, but confirm before assuming.
+
+**How to update this entry going forward:** don't rewrite it — when a PR
+from the plan lands, append a new dated entry below this one (same format as
+every other entry in this file: what exists now, what was decided, what's
+next, open questions), same as always. This entry stays as the "mid-PR-1"
+snapshot.
 4. (Same pass) the YAML file was being parsed from disk three separate times per `FairAdapter` construction. Fixed with a single `@lru_cache`d loader.
 
 **What's next:** Checkpoint 3 (synthetic demo datasets) or Checkpoint 4 (backend REST API) — see `ROADMAP.md`. This work is sitting on `feature/fair-indicators`, not yet merged into `development` — needs a self-review confirmation and a "push development" go-ahead like last time before it lands there.

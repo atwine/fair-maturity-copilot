@@ -6,8 +6,8 @@ from uuid import uuid4
 import pytest
 
 from app.adapters.fair.adapter import FairAdapter
-from app.adapters.fair.scoring_rubric import severity_for_answer
 from app.engine.models import Answer
+from app.engine.scoring import severity_for_answer
 
 
 def test_question_set_has_all_twelve_indicators_in_display_order():

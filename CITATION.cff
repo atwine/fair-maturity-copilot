@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this tool in published research, please cite it as below."
+title: "fair-maturity-copilot: A guided, plain-language FAIR data-maturity assessment tool"
+type: software
+authors:
+  - given-names: "Mugume Twinamatsiko"
+    family-names: "Atwine"
+    affiliation: "Africa Center of Excellence in Bioinformatics & Data Science (ACE), Kampala, Uganda"
+repository-code: "https://github.com/atwine/fair-maturity-copilot"
+license: MIT
+version: "0.1.0"
+date-released: "2026-08-27"
+keywords:
+  - FAIR
+  - data maturity
+  - research data management
+  - FAIR Data Maturity Model
+  - RDA
+  - data harmonization
+  - multi-site data
+abstract: >-
+  A guided, plain-language FAIR data-maturity assessment tool for research
+  organizations that don't have a data librarian on staff. Walks a
+  non-technical stakeholder through a 12-indicator subset of the RDA FAIR
+  Data Maturity Model in plain language, scores it, uses an LLM to turn
+  every weak indicator into a specific actionable next step, and synthesizes
+  the whole set of gaps into one ordered FAIRification plan. A second
+  adapter (harmonization-v0) assesses whether multiple sites in one
+  initiative describe their data consistently enough to combine and compare.

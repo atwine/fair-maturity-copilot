@@ -11,7 +11,7 @@
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
 ![Postgres (Neon)](https://img.shields.io/badge/Postgres-Neon-00E599?logo=postgresql&logoColor=white)
 ![Status](https://img.shields.io/badge/status-v0%20in%20progress-yellow)
-![License](https://img.shields.io/badge/license-unreleased-lightgrey)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 </div>
 
@@ -182,4 +182,4 @@ CHANGELOG.md            — dated record of what shipped
 
 ## License
 
-Not yet decided. Repo is **private** for now — may open-source later once v0 is working.
+[MIT](LICENSE) — the repo is public. Built by [ACE](https://ace.ac.ug) (Africa Center of Excellence in Bioinformatics & Data Science, Kampala, Uganda).

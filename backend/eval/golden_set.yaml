@@ -6,9 +6,10 @@
 # scripts/run_eval.py for how these are actually run and scored.
 #
 # Every indicator_id below is real, from app/adapters/fair/indicators.yaml
-# -- this file borrows its content (title/definition/help_text) rather than
-# repeating it, so the golden set can't drift out of sync with the real
-# question set.
+# (or, for the harmonization_* sections near the end, from
+# app/adapters/harmonization/indicators.yaml) -- this file borrows its
+# content (title/definition/help_text) rather than repeating it, so the
+# golden set can't drift out of sync with the real question set.
 
 remediation_cases:
   - id: pass-with-specific-note
@@ -97,3 +98,78 @@ plan_cases:
       - { indicator_id: fair.a1-access-process, severity: major_gap }
       - { indicator_id: fair.r1-data-dictionary, severity: major_gap }
       - { indicator_id: fair.r1-1-license, severity: major_gap }
+
+# Issue #16: the harmonization-v0 adapter's own golden set, run against its
+# own indicators.yaml/remediation.jinja/harmonization_plan.jinja. Kept as
+# separate top-level keys rather than merged into remediation_cases/
+# plan_cases above -- simplest way to add a second adapter's coverage
+# without touching the already-verified fair-v0 cases at all. See
+# scripts/run_eval.py for how each adapter's cases get resolved and run.
+harmonization_remediation_cases:
+  - id: pass-with-specific-note
+    adapter_id: harmonization-v0
+    indicator_id: harmonization.h1-field-names
+    answer:
+      value: "yes"
+      label: "Yes, clearly true"
+      note: "All 11 sites use the shared REDCap form, so every field name is identical by construction."
+      is_dont_know: false
+    checks: [format, plain_language, no_harmonization_jargon, grounded, no_invented_facts, length]
+
+  - id: major-gap-with-note
+    adapter_id: harmonization-v0
+    indicator_id: harmonization.h3-data-dictionary
+    answer:
+      value: "no"
+      label: "No, not true"
+      note: "Each site keeps its own spreadsheet of what the columns mean, nothing shared."
+      is_dont_know: false
+    checks: [format, plain_language, no_harmonization_jargon, grounded, no_invented_facts, length]
+
+  - id: minor-gap-with-note
+    adapter_id: harmonization-v0
+    indicator_id: harmonization.h5-categorical-values
+    answer:
+      value: "partial"
+      label: "Partially / inconsistently true"
+      note: "Test result is a fixed dropdown at most sites, but two still use free text."
+      is_dont_know: false
+    checks: [format, plain_language, no_harmonization_jargon, grounded, no_invented_facts, length]
+
+  - id: dont-know-case
+    adapter_id: harmonization-v0
+    indicator_id: harmonization.h6-mapping-plan
+    answer:
+      value: "dont_know"
+      label: "I don't know"
+      note: null
+      is_dont_know: true
+    checks: [format, plain_language, no_harmonization_jargon, finds_out_not_fixes, length]
+
+  - id: not-started-case
+    adapter_id: harmonization-v0
+    indicator_id: harmonization.h4-linkage-key
+    answer:
+      value: "not_started"
+      label: "We haven't started this yet"
+      note: null
+      is_dont_know: false
+    checks: [format, plain_language, no_harmonization_jargon, begins_not_finishes, length]
+
+  - id: not-started-with-thin-note
+    adapter_id: harmonization-v0
+    indicator_id: harmonization.h2-tidy-data
+    answer:
+      value: "not_started"
+      label: "We haven't started this yet"
+      note: "We're still pre-data-access as a consortium."
+      is_dont_know: false
+    checks: [format, plain_language, no_harmonization_jargon, begins_not_finishes, length]
+
+harmonization_plan_cases:
+  - id: three-gap-plan-with-a-not-started-item
+    adapter_id: harmonization-v0
+    findings:
+      - { indicator_id: harmonization.h1-field-names, severity: major_gap }
+      - { indicator_id: harmonization.h3-data-dictionary, severity: major_gap }
+      - { indicator_id: harmonization.h4-linkage-key, severity: not_started }

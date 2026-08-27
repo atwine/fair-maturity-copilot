@@ -31,10 +31,15 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.adapters.fair.adapter import FairAdapter
-from app.adapters.fair.plan import build_fairification_plan
+from app.adapters.registry import get_adapter
 from app.engine.llm_client import generate
 from app.engine.models import Answer, Finding
+
+# Every case (remediation or plan) carries its own adapter_id -- defaults to
+# fair-v0 for backward compatibility with the original golden set, written
+# before a second adapter existed. Issue #16 added harmonization-v0's own
+# cases (harmonization_remediation_cases/harmonization_plan_cases below).
+_DEFAULT_ADAPTER_ID = "fair-v0"
 
 _GOLDEN_SET_PATH = Path(__file__).parent.parent / "eval" / "golden_set.yaml"
 _OUTPUT_DIR = Path(__file__).parent.parent.parent / "docs" / "eval_reports"
@@ -54,6 +59,7 @@ _CHECK_LABELS = {
         "context, not to police whether every proper noun is individually defined."
     ),
     "no_fair_jargon": 'Never mentions "FAIR principles", indicator codes, or RDA jargon',
+    "no_harmonization_jargon": 'Never mentions "FAIR-DSM", "data maturity levels", indicator codes, or RDA/FAIRplus jargon',
     "grounded": (
         "The OUTPUT reflects the person's specific situation rather than reading as boilerplate that could "
         "apply to any dataset. This can show up ANYWHERE in the output (the summary OR a step), and a "
@@ -64,6 +70,10 @@ _CHECK_LABELS = {
     ),
     "no_invented_facts": "Doesn't name tools/facts not implied by the indicator or their answer",
     "finds_out_not_fixes": "For a don't-know answer, tells them who/where to find out, not how to fix it",
+    "begins_not_finishes": (
+        "For a not-started answer, names ONE small, genuinely first step toward beginning -- not a full "
+        "solution, and not written as if something is broken or overdue. Framed as a starting point, not a fix."
+    ),
     "length": "Summary and each step are each reasonably concise, not sprawling paragraphs",
     "repository_fits_situation": "If a repository is named, it fits their stated situation (not just a bare 'Zenodo' reflex)",
 }
@@ -152,10 +162,11 @@ def _judge(*, severity: str, answer_label: str, note: str | None, output_text: s
     return results
 
 
-def _run_remediation_cases(adapter: FairAdapter, cases: list[dict]) -> list[dict]:
-    indicators_by_id = {q.indicator.id: q.indicator for q in adapter.question_set()}
+def _run_remediation_cases(cases: list[dict]) -> list[dict]:
     results = []
     for case in cases:
+        adapter = get_adapter(case.get("adapter_id", _DEFAULT_ADAPTER_ID))
+        indicators_by_id = {q.indicator.id: q.indicator for q in adapter.question_set()}
         indicator = indicators_by_id[case["indicator_id"]]
         answer = _make_answer(case)
         severity = adapter.score(indicator, answer).severity
@@ -187,10 +198,11 @@ def _run_remediation_cases(adapter: FairAdapter, cases: list[dict]) -> list[dict
     return results
 
 
-def _run_plan_cases(adapter: FairAdapter, cases: list[dict]) -> list[dict]:
-    indicators_by_id = {q.indicator.id: q.indicator for q in adapter.question_set()}
+def _run_plan_cases(cases: list[dict]) -> list[dict]:
     results = []
     for case in cases:
+        adapter = get_adapter(case.get("adapter_id", _DEFAULT_ADAPTER_ID))
+        indicators_by_id = {q.indicator.id: q.indicator for q in adapter.question_set()}
         run_id = uuid.uuid4()
         findings = [
             Finding(
@@ -205,7 +217,7 @@ def _run_plan_cases(adapter: FairAdapter, cases: list[dict]) -> list[dict]:
         ]
         expected_ids = {f["indicator_id"] for f in case["findings"]}
         t0 = time.perf_counter()
-        plan = build_fairification_plan(findings=findings, indicators_by_id=indicators_by_id, subject_label=_SUBJECT_LABEL)
+        plan = adapter.build_plan(findings=findings, indicators_by_id=indicators_by_id, subject_label=_SUBJECT_LABEL)
         elapsed = time.perf_counter() - t0
         addressed_ids = {iid for step in plan.steps for iid in step.indicator_ids}
         missing = expected_ids - addressed_ids
@@ -261,13 +273,14 @@ def _write_report(remediation_results: list[dict], plan_results: list[dict]) -> 
 
 def main() -> None:
     golden_set = _load_golden_set()
-    adapter = FairAdapter()
+    remediation_cases = golden_set["remediation_cases"] + golden_set.get("harmonization_remediation_cases", [])
+    plan_cases = golden_set["plan_cases"] + golden_set.get("harmonization_plan_cases", [])
 
-    print(f"Running {len(golden_set['remediation_cases'])} remediation cases...")
-    remediation_results = _run_remediation_cases(adapter, golden_set["remediation_cases"])
+    print(f"Running {len(remediation_cases)} remediation cases...")
+    remediation_results = _run_remediation_cases(remediation_cases)
 
-    print(f"\nRunning {len(golden_set['plan_cases'])} plan cases...")
-    plan_results = _run_plan_cases(adapter, golden_set["plan_cases"])
+    print(f"\nRunning {len(plan_cases)} plan cases...")
+    plan_results = _run_plan_cases(plan_cases)
 
     report_path = _write_report(remediation_results, plan_results)
 

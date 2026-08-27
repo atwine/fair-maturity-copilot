@@ -13,13 +13,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from sqlmodel import Session
 
 from app.adapters.fair import content as fair_content
+from app.adapters.harmonization import content as harmonization_content
 from app.db import engine, init_db
 
-# Every adapter's content module, looped over below. A new adapter (issue
-# #16's harmonization-v0, for instance) is registered here alongside
+# Every adapter's content module, looped over below. Kept in sync with
 # app/adapters/registry.py -- both are "the one place allowed to know every
 # concrete adapter exists," per registry.py's own docstring.
-_CONTENT_MODULES = [fair_content]
+_CONTENT_MODULES = [fair_content, harmonization_content]
 
 
 def seed() -> None:

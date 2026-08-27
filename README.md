@@ -133,6 +133,13 @@ Other useful docs:
 - [`docs/WHY-THIS-TOOL.md`](docs/WHY-THIS-TOOL.md) — how this fits the FAIR-tooling landscape
 - [`docs/DECISIONS.md`](docs/DECISIONS.md) — why this project, and the design decisions along the way
 
+## Contributing
+
+Found a bug or have an idea? [Open an issue](https://github.com/atwine/fair-maturity-copilot/issues/new/choose).
+Want to contribute code? See [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to
+set up, branch, and open a pull request. We follow a
+[Code of Conduct](CODE_OF_CONDUCT.md) — be kind.
+
 ## Citation
 
 If you use this tool in published research, please cite it. See

@@ -72,3 +72,49 @@ def generate_chat(messages: list[dict], *, max_tokens: int = 1200, temperature: 
     same OpenAI-compatible shape every provider here accepts."""
     client = get_client()
     return _complete(client, messages, max_tokens=max_tokens, temperature=temperature)
+
+
+def generate_chat_with_tools(
+    messages: list[dict], *, tools: list[dict], max_tokens: int = 1200, temperature: float = 0.4
+) -> tuple[str, list]:
+    """Like generate_chat(), but declares real tools the model can call
+    instead of asking it to write a marker line into free text (issue #15
+    -- see app/engine/mentor.py, which is the only current caller).
+    Returns (content, tool_calls): content is the model's plain-text reply
+    (often empty when it calls a tool instead of replying directly --
+    that's normal, not a failure); tool_calls is whatever OpenAI-shaped
+    tool calls the model made, usually zero or one here.
+
+    Deliberately NOT built on top of _complete()'s empty-reply retry: that
+    retry exists for the specific "reasoning model burned its whole budget
+    thinking and returned nothing at all, not even a tool call" failure
+    (see this module's docstring) -- checked for here too, but a normal
+    tool call with empty content is not that failure and must not trigger
+    a pointless retry."""
+    client = get_client()
+    response = client.chat.completions.create(
+        model=settings.llm_model,
+        messages=messages,
+        tools=tools,
+        tool_choice="auto",
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+    choice = response.choices[0]
+    tool_calls = list(choice.message.tool_calls or [])
+    content = (choice.message.content or "").strip()
+
+    if not content and not tool_calls and choice.finish_reason == "length" and max_tokens < _RETRY_MAX_TOKENS:
+        response = client.chat.completions.create(
+            model=settings.llm_model,
+            messages=messages,
+            tools=tools,
+            tool_choice="auto",
+            max_tokens=_RETRY_MAX_TOKENS,
+            temperature=temperature,
+        )
+        choice = response.choices[0]
+        tool_calls = list(choice.message.tool_calls or [])
+        content = (choice.message.content or "").strip()
+
+    return content, tool_calls

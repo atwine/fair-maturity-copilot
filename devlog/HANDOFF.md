@@ -546,3 +546,65 @@ The mentor scoped in `docs/DECISIONS.md` v19 was implemented in two parts, both 
 **A gotcha caught mid-test, worth remembering:** after editing the `.jinja` prompt template, the mentor kept replying with the *old* rules — uvicorn's `--reload` only watches `.py` files, so the template edit was real but invisible to the running process until a manual restart. Compounded by a repeat of the exact same stale-`netstat` false alarm hit earlier this session (a killed PID still showing `LISTENING`; `Get-Process` confirmed it was actually dead). Both resolved with a clean process restart, then reverified live.
 
 **This work is on `feature/mentor-markdown-and-token-budgets`**, following on from `Option A for now, scope B later` and the user's direct "Yes, go ahead" approving the token-budget fix once the bug was diagnosed and explained.
+
+---
+
+## 2026-08-26 — Brainstorming session: multi-site consortium scope, attribution walked back, six issues filed, LLM default reverted to vLLM
+
+**Session shape:** started in Ask mode (read-only) at the user's request to review the whole project cold before brainstorming — read `README.md`, `ROADMAP.md`, `CHANGELOG.md`, all of `devlog/HANDOFF.md`, all of `docs/DECISIONS.md`, `docs/BRAINSTORMING-BRIEF.md`, `docs/WHY-THIS-TOOL.md`, and the backend/frontend file layout, before saying anything back. Then a real back-and-forth brainstorm, then switched to Normal mode for the resulting work.
+
+**What the user actually raised** (their own framing, paraphrased): they're starting an 11-center HIV data consortium project leaning toward OMOP CDM, very early — data not yet accessed, schemas unknown — and wondered whether this tool needed to grow to handle multiple data sources, whether teams collaborating on one assessment needed some kind of tracking, and whether the LLM setup (OpenRouter's `auto` router specifically) was trustworthy enough given the model-lottery problems already hit this project (see the v26 entry above).
+
+**Multi-site scope, resolved into two filed-but-not-built issues, not built now:** researched real precedent (the HEAP project ran the same RDA-derived FAIR indicators across six cohorts independently, then compared them with a rollup rather than a different method; NFDI consortia apply RDA-FDMM per-resource within a consortium) and FAIRplus-DSM's actual Level 2 indicator text (field-level tidy data, joinable reference fields, a shared data dictionary — read in full previously for this project, see `docs/DECISIONS.md` v18). Landed on: new "Level 2" harmonization-readiness content (issue #16) plus a `Program`/`Consortium` grouping entity (issue #17) — both explicitly need a scoping conversation before implementation, same as the mentor (v19) and the plan (v16) were each scoped before being built. Explicitly ruled out: any ETL/harmonization tooling, and the already-parked OMOP DQD adapter (that's a later stage — after data is actually inside an OMOP CDM database, which this consortium hasn't reached).
+
+**Collaboration/attribution — raised, then walked back by the user's own second thought, worth remembering if this comes up again:** initially discussed as a per-person audit trail. The user directly asked whether they were "overthinking it," which prompted disentangling it into two different jobs — coaching continuity (fine, stays private to one conversation) vs. accountability tracking (a compliance/project-management function). Concluded the second actively works against this tool's own design philosophy — every existing choice (the mentor's reworked tone, passing indicators getting real content instead of silence, the non-condescending "newbie" framing) protects an honest, consequence-free self-report, and a visible per-person log would risk distorting exactly that. **Decision: dropped from the roadmap** — see `docs/DECISIONS.md` v27 for the full reasoning. Only site-level grouping survives, inside issue #17.
+
+**LLM trustworthiness: researched, then actually decided and implemented in this same session** (not left as an open issue) — see below.
+
+**Six issues filed on GitHub** ([#14](https://github.com/atwine/fair-maturity-copilot/issues/14) through [#19](https://github.com/atwine/fair-maturity-copilot/issues/19)): pin an explicit model / stop using `openrouter/auto`, replace text-marker parsing with real structured output, Level 2 harmonization content, `Program`/`Consortium` grouping, a "which tool fits your situation" navigator extending `/about`, and documenting real LLM provider costs in the README. Full descriptions in the issues themselves — each written with a `## Goal`/`## Why`/`## Scope`/`## Out of scope`/`## Done when` structure matching this project's existing issue style, and the two open-ended ones (#16, #17) explicitly flagged as needing a scoping pass, not ready-to-build specs.
+
+**Then, in the same session, the user made a direct call ahead of #14 being fully worked:** go back to self-hosted vLLM as the default, given the OpenRouter/`auto` reliability problems already hit. Implemented immediately on `feature/llm-default-back-to-vllm` (branched off `development`):
+- `backend/.env` and `backend/.env.example` reverted to vLLM active (`ibnzterrell/Meta-Llama-3.3-70B-Instruct-AWQ-INT4`); OpenRouter kept as a fallback block but pinned to `meta-llama/llama-3.3-70b-instruct` (the *same* model vLLM runs) instead of `openrouter/auto` — so falling back doesn't also mean a behavior change.
+- `README.md`'s "LLM provider" table reordered (vLLM listed first as this project's own default) and a new explicit "don't use `openrouter/auto`" callout added.
+- `backend/app/config.py`'s comment updated to explain *why* vLLM is the Python-level default, referencing issue #14.
+- `docs/DECISIONS.md` v27 and a `CHANGELOG.md` "Changed" entry added recording the full session and this specific reversal.
+
+**Verified live shortly after** (same session, once `10.35.50.41` turned out to be reachable from this environment after all): confirmed `GET /v1/models` responds with the expected model, then ran the full backend suite including all 18 live-LLM tests (`test_report_live.py`, `test_plan_live.py`, `test_mentor_live.py`) — 61/61 passed. Report generation (93.81s for 6 tests), plan synthesis, and mentor conversations all behave correctly against vLLM post-revert. Commented on issue #14 with the result; left the issue open only for its separate structured-output-migration tracking, not for further model verification.
+
+**Where this leaves things:** `feature/llm-default-back-to-vllm` (config/docs) and this verification follow-up are both merged locally into `development` — not yet pushed, pending the user's go-ahead. Issues #14-#19 are open on GitHub, unassigned. #16 and #17 still need a scoping conversation before anyone starts building. #14's live-verification concern is now resolved.
+
+**Open questions carried forward:** everything from prior entries (promotion cadence, Neon production plan decision) — plus, now: when will the 11-center consortium project actually get data access (the user's colleagues were "just beginning to ask" as of this session), since that's the real trigger for #16/#17 becoming buildable rather than speculative.
+
+---
+
+## 2026-08-26 — Issue #19: real, measured LLM cost numbers added to the README
+
+**Picked as the easiest of the six freshly-filed issues, deliberately.** #14 was effectively already done (previous entry); #16/#17 explicitly need a scoping conversation first; #15 needs real code changes; #18 needs actual frontend/UI work. #19 is pure documentation with no new code paths, so it went first.
+
+**Didn't estimate — measured.** Wrote a throwaway script (`backend/_measure_token_usage.py`, deleted after use) that monkeypatches `openai.resources.chat.completions.Completions.create` to record real `usage.prompt_tokens`/`usage.completion_tokens` on every call, then ran one realistic flow through the actual FastAPI app against the live vLLM endpoint (which happened to be reachable again this session): a 12-question assessment with 4 gaps → report (12 calls) → plan (1 call) → a 3-message mentor conversation where the last message confirms a fix and triggers a re-score (5 calls). Real total: 14,203 prompt tokens, 852 completion tokens, 18 calls — not a guess from reading the prompt templates.
+
+**Fetched current prices directly from OpenRouter's own model pages** (not carried over from earlier in this session, which could have drifted) for Llama 3.3 70B ($0.10/$0.32 per 1M) and Claude Sonnet 5 ($2/$10 per 1M), then applied the measured usage to get real per-flow costs: self-hosted vLLM $0, Llama-on-OpenRouter ≈$0.002, Sonnet ≈$0.037.
+
+**A genuine finding, not just a number-filling exercise:** the 3-message mentor conversation (5 calls once the re-score is counted) used more tokens than the entire 12-call report. Worth remembering architecturally — every mentor turn resends the whole conversation history, so cost (and latency) grows with how long someone stays in a coaching conversation, unlike the report/plan's fixed one-time cost. Wrote this into the README as an explicit caveat rather than letting the headline per-flow numbers imply a flat cost regardless of usage pattern. Also added a multi-site extrapolation directly relevant to issues #16/#17: even at Sonnet's frontier price, 11 sites running this same flow stays under 50 cents total, which reframes the real decision between providers as reliability/data-sensitivity, not cost.
+
+**Verified:** ran the instrumentation script itself against the real endpoint (not mocked) and got the numbers above directly from real API responses. Full account in `docs/DECISIONS.md` v28 and the `CHANGELOG.md` entry.
+
+**This work is on `feature/readme-llm-cost-comparison`, not yet merged into `development`** — pending self-review and the user's go-ahead to push, same as every other change this session.
+
+**Open questions carried forward:** unchanged from the entry above.
+
+---
+
+## 2026-08-26 — Issue #15: the mentor's confirmed-fix action moved to a real tool call
+
+**Checked the blocking assumption before writing any code, rather than trust it or ignore it.** `mentor.py`'s own docstring said this was avoided because self-hosted vLLM isn't guaranteed to have tool-calling enabled. Sent a real tool-calling request directly to ACE's live vLLM endpoint and separately to the OpenRouter fallback model (`meta-llama/llama-3.3-70b-instruct`) — both returned correct, structured tool calls with the exact right arguments, not free text. That resolved the one thing that could have made this issue a dead end.
+
+**What changed:** `mentor.py` no longer regex-matches `UPDATE_ANSWER:`/`NOTE:` out of the model's reply. A real `confirm_indicator_fix` tool is declared and passed with `tool_choice="auto"`; the model either writes ordinary text (plain conversation) or calls the tool (confirming a fix). The one real design decision: the tool's own arguments include a `reply_to_user` field carrying the model's conversational reply, rather than expecting separate free text alongside the call — confirmed directly in both live checks that providers stop writing `content` the moment they call a tool, so this was the only way to keep this at one LLM call per turn (a second, textbook "send the tool result back, get a follow-up reply" round trip would have doubled mentor latency on every confirmed fix, which the issue explicitly said not to do). `llm_client.py` gained `generate_chat_with_tools()` with its own smaller empty-reply retry (a tool call with no `content` is normal here, not a failure, so it can't reuse `_complete()`'s retry logic as-is). `mentor_system.jinja` rewritten to describe the tool; `MENTOR_PROMPT_VERSION` → `fair-mentor-v4`.
+
+**Tests:** `test_mentor.py` rewritten — 9 old marker-line-regex tests became 8 tool-call-parsing tests (one old case, a conversational reply mentioning "update answer" mid-sentence, is now structurally impossible to misfire on, so it wasn't carried forward; new cases cover malformed/non-JSON tool arguments instead). Full suite: 60/60, including all 7 `test_mentor_live.py` tests against the real vLLM endpoint — `test_confirming_a_fix_in_chat_updates_the_real_answer_and_rescores` is the one that actually proves the new tool-calling path reaches all the way through to the real answer-update/rescore machinery, live, not just that the parser unit tests pass in isolation.
+
+**Deliberately not done:** the plan's `GOAL:`/`STEP:`/`ADDRESSES:` parsing and the remediation writer's `SUMMARY:`/`STEPS:` parsing use the same marker-line pattern and could get the same treatment — issue #15 explicitly scoped this to the mentor only, as a separate follow-up if this one went cleanly (it did).
+
+**This work is on `feature/mentor-tool-calling`, not yet merged into `development`** — pending self-review and the user's go-ahead to push.
+
+**Open questions carried forward:** unchanged from the entry above, plus: whether to pick up the plan/remediation parsing conversions as follow-up issues now that this one's proven the approach works against real infrastructure.

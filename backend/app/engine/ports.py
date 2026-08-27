@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from app.engine.models import Answer, Finding, Indicator
+from app.engine.plan import Plan
 
 
 @dataclass
@@ -58,6 +59,15 @@ class Adapter(Protocol):
         fix. The engine (app/engine/remediation.py) owns *how* the prompt
         gets sent to the LLM and grounding-checked; the adapter owns *what*
         goes into it, and severity is what lets it pick the right framing."""
+        ...
+
+    def build_plan(
+        self, *, findings: list[Finding], indicators_by_id: dict[str, Indicator], subject_label: str
+    ) -> Plan:
+        """Synthesize a single ordered walkthrough plan from a run's open
+        findings. The engine (app/engine/plan.py) owns parsing the model's
+        response and the open-findings filter; the adapter owns the prompt
+        wording (e.g. its own "natural order" for its own content)."""
         ...
 
     def render_mentor_system_prompt(

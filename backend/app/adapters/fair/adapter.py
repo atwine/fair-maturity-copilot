@@ -5,12 +5,13 @@ the engine's Adapter Protocol."""
 
 from app.adapters.fair.content import load_indicators, load_options_by_indicator_id
 from app.adapters.fair.mentor_prompt import render_mentor_system_prompt as _render_mentor_system_prompt
+from app.adapters.fair.plan import build_fairification_plan
 from app.adapters.fair.prompt import PROMPT_VERSION
 from app.adapters.fair.prompt import render_remediation_prompt as _render_remediation_prompt
-from app.adapters.fair.scoring_rubric import severity_for_answer
 from app.engine.models import Answer, Finding, Indicator
+from app.engine.plan import Plan
 from app.engine.ports import MentorIndicatorContext, Question
-from app.engine.scoring import priority_weight_for
+from app.engine.scoring import priority_weight_for, severity_for_answer
 
 
 class FairAdapter:
@@ -59,4 +60,11 @@ class FairAdapter:
             indicators=indicators,
             subject_label=subject_label,
             skill_level=skill_level,
+        )
+
+    def build_plan(
+        self, *, findings: list[Finding], indicators_by_id: dict[str, Indicator], subject_label: str
+    ) -> Plan:
+        return build_fairification_plan(
+            findings=findings, indicators_by_id=indicators_by_id, subject_label=subject_label
         )

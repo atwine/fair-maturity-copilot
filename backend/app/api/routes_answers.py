@@ -12,8 +12,6 @@ from app.engine.models import Answer, AssessmentRun
 
 router = APIRouter(prefix="/assessments", tags=["answers"])
 
-_VALID_VALUES = {"yes", "partial", "no", "dont_know"}
-
 
 @router.put("/{run_id}/answers/{indicator_id}", response_model=AnswerOut)
 def upsert_answer(
@@ -22,17 +20,24 @@ def upsert_answer(
     run = session.get(AssessmentRun, run_id)
     if run is None:
         raise HTTPException(status_code=404, detail="Assessment not found")
+
+    adapter = get_adapter(run.adapter_id)
+    question_by_indicator_id = {q.indicator.id: q for q in adapter.question_set()}
+    question = question_by_indicator_id.get(indicator_id)
+    if question is None:
+        raise HTTPException(status_code=404, detail=f"Unknown indicator for this adapter: {indicator_id!r}")
+
+    # Validated against this indicator's own options, not a single global
+    # value set -- different adapters can offer different answer values
+    # (issue #16 added a 5th, "not_started", for the harmonization adapter
+    # only), so the allowed set has to come from the question itself.
     # Editing an answer after completion is how revisiting a finding from
     # the report works (see _rescore_finding_and_refresh_report below) --
     # no longer blocked. What used to be a one-shot linear flow is now one
     # a person can come back to.
-    if body.value not in _VALID_VALUES:
-        raise HTTPException(status_code=422, detail=f"value must be one of {sorted(_VALID_VALUES)}")
-
-    adapter = get_adapter(run.adapter_id)
-    valid_indicator_ids = {q.indicator.id for q in adapter.question_set()}
-    if indicator_id not in valid_indicator_ids:
-        raise HTTPException(status_code=404, detail=f"Unknown indicator for this adapter: {indicator_id!r}")
+    valid_values = {opt["value"] for opt in question.options}
+    if body.value not in valid_values:
+        raise HTTPException(status_code=422, detail=f"value must be one of {sorted(valid_values)}")
 
     is_dont_know = body.value == "dont_know"
     existing = session.exec(

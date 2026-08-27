@@ -684,3 +684,13 @@ See `docs/DECISIONS.md` v32 for the full account.
 3. **Roadmap:** Checkpoints 6 (eval harness), 7 (deploy), 8 (pilot) remain. Issues #16/#17 need scoping conversations before building.
 
 **Open questions carried forward:** Promotion cadence for development→staging→main still unconfirmed. Neon production scale-to-zero plan decision still deferred to Checkpoint 7. The `uvicorn --reload` unreliability in the OneDrive-synced working directory persists — manually kill and restart the backend after every backend code change.
+
+---
+
+## 2026-08-27 — Staging review gap closed (Claude), development caught up after Devin session
+
+Picked this project back up after a Devin session (2026-08-26/27) covering issues #6, #9/#15/#14 follow-ups, #18, and #19 — see `docs/DECISIONS.md` v27-v32 for the full account of each. `development` was already pushed and in sync with `origin/development` by the time this session started.
+
+**Closed the review gap v32 flagged:** ran the `code-review` skill against the `origin/staging...staging` diff (the 3 unpushed issue #6 commits — `remediation.jinja`'s repository decision rule). Read every changed line directly (a small, four-file, prompt-text-only diff) rather than spawning the full 8-angle agent search — proportionate to the size and risk of the change. No findings: the change is prompt guidance only, no code-logic paths touched, and Devin had already verified it live (61/61 tests, including a dedicated re-run of `test_report_live.py`). Reran the full non-live suite locally as a final sanity check against the current default (vLLM, post issue #14's revert) — 60/60 passed. Pushed `staging` to `origin/staging` (`a3e0e8b..e5937fd`).
+
+**Not yet done:** the `staging` → `main` PR itself — still needs the independent Open Code Review delegate-mode pass per this project's standing rule (right before any production PR goes up), and the project owner's explicit go-ahead to push/merge, same as every promotion so far.

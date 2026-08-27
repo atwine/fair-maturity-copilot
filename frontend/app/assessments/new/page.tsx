@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,19 @@ const ADAPTER_COPY: Record<string, { heading: string; description: string; label
 };
 const DEFAULT_ADAPTER_ID = "fair-v0";
 
+// useSearchParams() forces this page to opt out of static prerendering
+// unless the component calling it is wrapped in a Suspense boundary (Next.js
+// build requirement). The page itself is a thin Suspense wrapper; the real
+// logic lives in NewAssessmentForm below.
 export default function NewAssessmentPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewAssessmentForm />
+    </Suspense>
+  );
+}
+
+function NewAssessmentForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const adapterId = ADAPTER_COPY[searchParams.get("adapter") ?? ""] ? searchParams.get("adapter")! : DEFAULT_ADAPTER_ID;

@@ -21,6 +21,10 @@ without needing a data librarian on staff. You answer plain-language questions
 about your dataset, get a score, and the tool turns every weak spot into a
 specific, actionable next step.
 
+<div align="center">
+  <img src="assets/landing-measurements.png" alt="Landing page showing sample FAIR measurements with barrel scales and thimble markers" width="800">
+</div>
+
 ## What it does
 
 **For a single dataset** — 12 plain-language questions based on the RDA FAIR

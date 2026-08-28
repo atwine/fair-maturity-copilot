@@ -9,7 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-fraunces), Georgia, serif;
+  --font-heading: var(--font-hanken-grotesk), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --color-gold: var(--gold);
   --color-gold-soft: var(--gold-soft);
   --color-severity-pass: var(--severity-pass);
@@ -66,13 +66,70 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Visual identity: warm paper ground, deep teal as the one real accent (also
-   drives shadcn's --primary so every button/link/focus-ring inherits it for
-   free), muted gold as a second, sparingly-used highlight reserved for the
-   FAIR-spectrum tracker and score emphasis. Severity colors are a distinct
-   semantic set -- deliberately not reusing the brand teal/gold, so "this
-   indicator passed" never looks like "this is the accent color". */
+/* Direction #19 — The Micrometer: warm ivory ground (like the engraved
+   scale on a precision instrument), deep ink text, a muted steel-teal
+   accent (the color of blued steel — not bright, not warm, a cool
+   instrument accent). Hanken Grotesk for headings — a clean, friendly
+   grotesque with slightly rounded letterforms. The page is a precision
+   measuring instrument: the FAIR principles are measurements shown as
+   linear barrel scales with thimble readings.
+   NOTE: --font-heading changed — cascades to all routes.
+   Contrast: fg/bg 12.8:1, primary/bg 4.71:1, muted-fg/bg 5.92:1. */
 :root {
+  --background: #f0ece2;
+  --foreground: #2a2520;
+  --card: #f7f3e9;
+  --card-foreground: #2a2520;
+  --popover: #f7f3e9;
+  --popover-foreground: #2a2520;
+  --primary: #3d6b7a;
+  --primary-foreground: #f7f3e9;
+  --secondary: #e4ddcc;
+  --secondary-foreground: #2a2520;
+  --muted: #e4ddcc;
+  --muted-foreground: #5a4d38;
+  --accent: #e0d9c8;
+  --accent-foreground: #3d6b7a;
+  --destructive: #a13a2c;
+  --border: #c8b898;
+  --input: #c8b898;
+  --ring: #3d6b7a;
+  --gold: #8a6d2f;
+  --gold-soft: #e8dab8;
+  --severity-pass: #4a7a3a;
+  --severity-pass-soft: #d8e8c8;
+  --severity-minor: #8f570d;
+  --severity-minor-soft: #f4e6d1;
+  --severity-major: #a13a2c;
+  --severity-major-soft: #f5e0dc;
+  --severity-unknown: #5b4b8a;
+  --severity-unknown-soft: #e9e5f2;
+  --severity-not-started: #3d6b8a;
+  --severity-not-started-soft: #dde8ef;
+  --group-a: #2f5f8a;
+  --group-a-soft: #dce8f2;
+  --group-b: #7a3f66;
+  --group-b-soft: #f0dfe9;
+  --group-c: #4a5568;
+  --group-c-soft: #e3e6ea;
+  --chart-1: #3d6b7a;
+  --chart-2: #4a7a3a;
+  --chart-3: #5b4b8a;
+  --chart-4: #8a6d2f;
+  --chart-5: #a13a2c;
+  --radius: 0.25rem;
+  --sidebar: #f7f3e9;
+  --sidebar-foreground: #2a2520;
+  --sidebar-primary: #3d6b7a;
+  --sidebar-primary-foreground: #f7f3e9;
+  --sidebar-accent: #e0d9c8;
+  --sidebar-accent-foreground: #3d6b7a;
+  --sidebar-border: #c8b898;
+  --sidebar-ring: #3d6b7a;
+}
+
+/* Original warm-cream/teal identity — preserved for rollback. Not applied. */
+.light {
   --background: #f2f1ea;
   --foreground: #1b231f;
   --card: #fbfaf6;
@@ -101,18 +158,8 @@
   --severity-major-soft: #f5e0dc;
   --severity-unknown: #5b4b8a;
   --severity-unknown-soft: #e9e5f2;
-  /* "Not started yet" (issue #16): a genuinely neutral, non-penalized
-     outcome -- deliberately not severity-unknown's purple ("worth finding
-     out" reads as a question mark; this should read as "early, and that's
-     fine"), and not close enough to severity-major/minor's warm reds/
-     browns to look like a variant of "needs attention". A cool, calm
-     blue-gray, contrast-checked against --card the same way severity-minor
-     was (docs/DECISIONS.md v34). */
   --severity-not-started: #3d6b8a;
   --severity-not-started-soft: #dde8ef;
-  /* Principle-group palette for FairSpectrum/PrincipleChip's non-FAIR
-     groups (harmonization-v0's 3 categories) -- distinct hues from every
-     severity color above, so a group label is never mistaken for a status. */
   --group-a: #2f5f8a;
   --group-a-soft: #dce8f2;
   --group-b: #7a3f66;
@@ -196,5 +243,45 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* Direction #19 — The Micrometer: the signature is the thimble reading
+   sliding into position on the barrel scale. One moment: the thimble
+   slides to its measurement, like tightening a micrometer. Base state
+   is at the final reading for reduced-motion users. */
+@media (prefers-reduced-motion: no-preference) {
+  .micro-thimble {
+    animation: micro-thimble 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .micro-thimble-1 { animation-delay: 0.15s; }
+  .micro-thimble-2 { animation-delay: 0.3s; }
+  .micro-thimble-3 { animation-delay: 0.45s; }
+  .micro-thimble-4 { animation-delay: 0.6s; }
+  .micro-fade {
+    animation: micro-fade 0.4s ease-out both;
+  }
+  .micro-fade-1 { animation-delay: 0.1s; }
+  .micro-fade-2 { animation-delay: 0.2s; }
+  .micro-fade-3 { animation-delay: 0.3s; }
+}
+
+@keyframes micro-thimble {
+  from {
+    transform: translateX(-40px);
+  }
+  to {
+    transform: translateX(var(--thimble-pos, 0px));
+  }
+}
+
+@keyframes micro-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

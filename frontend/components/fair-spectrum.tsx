@@ -77,7 +77,7 @@ export function FairSpectrum({
           );
         })}
       </div>
-      <div className="flex justify-between text-[0.7rem] font-medium tracking-wide text-muted-foreground uppercase">
+      <div className="flex justify-between text-xs font-medium tracking-wide text-muted-foreground uppercase">
         {order.map((group, i) => (counts[i] > 0 ? <span key={group}>{group}</span> : null))}
       </div>
     </div>
@@ -88,7 +88,7 @@ export function PrincipleChip({ group }: { group: string }) {
   const style = styleFor(group);
   return (
     <span
-      className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[0.65rem] font-semibold ${style.track} ${style.text}`}
+      className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold ${style.track} ${style.text}`}
       title={group}
     >
       {group[0]}

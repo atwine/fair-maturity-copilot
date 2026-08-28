@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Hanken_Grotesk } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
@@ -13,13 +13,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Display face for headings only -- kept out of --font-sans so body copy
-// stays on Geist. Optical sizing gives it real weight at large sizes without
-// looking spindly at small ones (used down to card titles).
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+// Direction #19 — The Micrometer: Hanken Grotesk for headings — a clean,
+// friendly grotesque with slightly rounded letterforms. NOT Inter, NOT
+// Geist, NOT Fraunces. Has the precision-instrument feel with a touch
+// of warmth. Cascades to all routes.
+const hankenGrotesk = Hanken_Grotesk({
+  variable: "--font-hanken-grotesk",
   subsets: ["latin"],
-  axes: ["opsz"],
+  axes: ["wght"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -31,7 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${hankenGrotesk.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <a

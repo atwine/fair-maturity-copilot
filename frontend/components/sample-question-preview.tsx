@@ -15,11 +15,11 @@ const ANSWER_OPTIONS = ["Yes", "Partially", "No", "I don't know"];
 // never reports it as an interactive control that does nothing.
 export function SampleQuestionPreview() {
   return (
-    <Collapsible className="w-full max-w-xl">
-      <CollapsibleTrigger className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
+    <Collapsible className="w-full">
+      <CollapsibleTrigger className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 font-heading text-base font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
         See what a question looks like
       </CollapsibleTrigger>
-      <CollapsibleContent className="mt-4 rounded-md border bg-card p-5 text-left">
+      <CollapsibleContent className="mt-4 rounded-md border border-foreground/20 bg-card p-5 text-left">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Question 3 of 12 &middot; Findable
         </p>

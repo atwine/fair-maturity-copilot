@@ -33,7 +33,7 @@ export default function Home() {
         <h1 className="mt-4 font-heading text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">
           Is your data actually FAIR?
         </h1>
-        <p className="mt-4 max-w-lg text-base leading-relaxed text-muted-foreground">
+        <p className="mt-4 text-base leading-relaxed text-justify text-muted-foreground">
           A guided, plain-language self-assessment for research group leads
           who don&rsquo;t have a data librarian on staff. No prior knowledge
           of data management assumed.

@@ -1,11 +1,13 @@
 import Link from "next/link";
+import { Search, KeyRound, Puzzle, Recycle } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const LETTERS = [
-  { letter: "F", word: "Findable", blurb: "can someone find out it exists?", color: "text-primary" },
-  { letter: "A", word: "Accessible", blurb: "is it clear how to get it?", color: "text-gold" },
-  { letter: "I", word: "Interoperable", blurb: "can other tools read it?", color: "text-severity-unknown" },
-  { letter: "R", word: "Reusable", blurb: "enough context to use it right?", color: "text-severity-minor" },
+  { letter: "F", word: "Findable", blurb: "can someone find out it exists?", color: "text-primary", icon: Search },
+  { letter: "A", word: "Accessible", blurb: "is it clear how to get it?", color: "text-gold", icon: KeyRound },
+  { letter: "I", word: "Interoperable", blurb: "can other tools read it?", color: "text-severity-unknown", icon: Puzzle },
+  { letter: "R", word: "Reusable", blurb: "enough context to use it right?", color: "text-severity-minor", icon: Recycle },
 ];
 
 const TOOLS = [
@@ -72,21 +74,21 @@ export default function AboutPage() {
       <div className="space-y-2">
         <p className="text-sm font-semibold tracking-wide text-primary uppercase">FAIR Maturity Copilot</p>
         <h1 className="font-heading text-4xl font-semibold text-balance">Why this tool exists</h1>
-        <p className="max-w-xl text-lg text-muted-foreground">
+        <p className="text-lg leading-relaxed text-justify text-muted-foreground">
           For the moment someone asks &ldquo;why not just use [existing thing]?&rdquo;
         </p>
       </div>
 
       <section className="space-y-3">
         <h2 className="font-heading text-xl font-semibold">Who this is for</h2>
-        <p className="text-base leading-relaxed">
+        <p className="text-base leading-relaxed text-justify">
           A research group lead at an institution like ACE Uganda — someone responsible for their team&rsquo;s data,
           but without a data manager or data librarian on staff. They know their research. They were never trained
           in data stewardship, and nobody expects them to have been. But funders, collaborators, and good scientific
           practice increasingly expect research data to be <strong>FAIR</strong>: Findable, Accessible,
           Interoperable, Reusable.
         </p>
-        <p className="text-base leading-relaxed">
+        <p className="text-base leading-relaxed text-justify">
           This tool exists because that person needs two things nothing else in this space gives them together: a
           way to find out, in plain language, whether their data practices are actually okay — and a clear, ordered
           plan for what to do about it if they&rsquo;re not. Not a technical report. Not a library to go research.
@@ -96,18 +98,18 @@ export default function AboutPage() {
 
       <section className="space-y-3">
         <h2 className="font-heading text-xl font-semibold">What &ldquo;FAIR&rdquo; actually means</h2>
-        <p className="text-base leading-relaxed">Four questions about a dataset:</p>
+        <p className="text-base leading-relaxed text-justify">Four questions about a dataset:</p>
         <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {LETTERS.map(({ letter, word, blurb, color }) => (
-            <div key={letter} className="flex items-baseline gap-2 rounded-md border bg-card p-3">
-              <dt className={`font-heading text-xl font-semibold ${color}`}>{letter}</dt>
+          {LETTERS.map(({ letter, word, blurb, color, icon: Icon }) => (
+            <div key={letter} className="flex items-center gap-3 rounded-md border bg-card p-4">
+              <Icon className={`size-5 shrink-0 ${color}`} aria-hidden="true" />
               <dd className="text-sm">
                 <span className="font-medium">{word}</span> — {blurb}
               </dd>
             </div>
           ))}
         </dl>
-        <p className="text-base leading-relaxed">
+        <p className="text-base leading-relaxed text-justify">
           A formal international group, the Research Data Alliance, wrote a detailed &ldquo;maturity model&rdquo;
           defining 41 specific things to check across those four questions. This tool asks 12 of those 41 — the ones
           a non-technical research lead can actually answer about their own data, without a data science background.
@@ -116,7 +118,7 @@ export default function AboutPage() {
 
       <section className="space-y-3">
         <h2 className="font-heading text-xl font-semibold">The landscape: what else is already out there</h2>
-        <p className="text-base leading-relaxed">
+        <p className="text-base leading-relaxed text-justify">
           Before building this, we looked at six things the wider FAIR community already uses. Here&rsquo;s what
           each one actually is, in plain terms — because even people who&rsquo;ve sat through official training on
           this come away unsure how they all fit together. That confusion is not a personal failing. It&rsquo;s the
@@ -137,7 +139,7 @@ export default function AboutPage() {
             </Card>
           ))}
         </div>
-        <p className="text-base leading-relaxed">
+        <p className="text-base leading-relaxed text-justify">
           Not sure which of these applies to you?{" "}
           <Link href="/navigator" className="underline underline-offset-4 hover:text-foreground">
             Answer a few questions
@@ -148,7 +150,7 @@ export default function AboutPage() {
 
       <section className="space-y-3">
         <h2 className="font-heading text-xl font-semibold">Why we didn&rsquo;t just point people at one of these</h2>
-        <p className="text-base leading-relaxed">
+        <p className="text-base leading-relaxed text-justify">
           Because none of them, on its own, solves the actual problem. The two automated checkers can&rsquo;t talk
           to a human in plain language. The two reference resources assume you already know which part applies to
           you — and one of them is scaled for institutions, not individuals. That leaves six different named tools,
@@ -162,7 +164,7 @@ export default function AboutPage() {
 
       <section className="space-y-3">
         <h2 className="font-heading text-xl font-semibold">What we built instead</h2>
-        <p className="text-base leading-relaxed">
+        <p className="text-base leading-relaxed text-justify">
           One guided path. Answer 12 plain-language questions about your own data, each with a worked example, so
           you never have to already know a term before you can answer about it. Get a score and a plain-language
           report — what&rsquo;s working, what isn&rsquo;t, and why it matters, no jargon assumed. Then get a single
@@ -170,7 +172,7 @@ export default function AboutPage() {
           documentation, then formats, then hosting, then sharing — the same order the FAIRification framework above
           describes, generated specifically from your own gaps.
         </p>
-        <p className="text-base leading-relaxed">
+        <p className="text-base leading-relaxed text-justify">
           You never need to know the RDA model exists, or that F-UJI and FAIR Checker are two different tools doing
           the same thing, or which of 60+ Cookbook recipes applies to you. That&rsquo;s the whole point.
         </p>
@@ -183,7 +185,7 @@ export default function AboutPage() {
             <Card key={item.q}>
               <CardContent className="space-y-1.5 pt-5">
                 <p className="font-heading text-base font-semibold">{item.q}</p>
-                <p className="text-sm leading-relaxed text-muted-foreground">{item.a}</p>
+                <p className="text-sm leading-relaxed text-justify text-muted-foreground">{item.a}</p>
               </CardContent>
             </Card>
           ))}

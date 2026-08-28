@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { SampleQuestionPreview } from "@/components/sample-question-preview";
 
 const PRINCIPLES = [
   {
@@ -49,7 +50,7 @@ const STEPS = [
 
 export default function Home() {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center gap-16 px-6 py-16">
+    <main id="main-content" className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center gap-16 px-6 py-16">
       <div className="flex flex-col items-center gap-10 text-center">
         <div className="flex gap-3 sm:gap-5" aria-hidden="true">
           {PRINCIPLES.map(({ letter, color, ring }) => (
@@ -73,6 +74,8 @@ export default function Home() {
         </div>
 
         <Button size="lg" nativeButton={false} render={<Link href="/assessments/new">Start an assessment</Link>} />
+
+        <SampleQuestionPreview />
 
         <p className="text-sm text-muted-foreground">
           Not sure if this is the right tool for you?{" "}
